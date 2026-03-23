@@ -37,9 +37,16 @@ MOCK_USER_ID: uuid.UUID | None = None
 async def create_job(
     data: JobCreate,
     service: JobService = Depends(get_job_service),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Create a new job posting (saved as draft)."""
-    return await service.create_job(data, created_by=MOCK_USER_ID)
+    """Create a new job posting (saved as draft). Auto-extracts criteria in background."""
+    import asyncio
+    job = await service.create_job(data, created_by=MOCK_USER_ID)
+    # Fire-and-forget criteria extraction (only if no template criteria already copied)
+    if not data.template_id:
+        criteria_svc = CriteriaService(db)
+        asyncio.create_task(criteria_svc.extract_criteria(job.id))
+    return job
 
 
 @router.get("", response_model=PaginatedJobs)
@@ -69,9 +76,15 @@ async def update_job(
     job_id: uuid.UUID,
     data: JobUpdate,
     service: JobService = Depends(get_job_service),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Update job fields (not allowed on closed jobs)."""
-    return await service.update_job(job_id, data)
+    """Update job fields. Auto-re-extracts criteria in background if description changed."""
+    import asyncio
+    job = await service.update_job(job_id, data)
+    if data.description is not None:
+        criteria_svc = CriteriaService(db)
+        asyncio.create_task(criteria_svc.extract_criteria(job_id))
+    return job
 
 
 @router.patch("/{job_id}/status", response_model=JobOut)

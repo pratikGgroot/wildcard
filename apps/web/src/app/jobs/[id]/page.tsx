@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { EditJobModal } from "@/components/jobs/edit-job-modal";
 import { SaveTemplateModal } from "@/components/jobs/save-template-modal";
 import { ParsingErrorsPanel } from "@/components/jobs/parsing-errors-panel";
 import { DuplicatesPanel } from "@/components/jobs/duplicates-panel";
+import ShortlistPanel from "@/components/jobs/shortlist-panel";
 
 const STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
   draft:  { label: "Draft",  bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
@@ -62,17 +63,21 @@ export default function JobDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
-  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "team" | "history" | "errors" | "duplicates">("description");
+  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "team" | "history" | "errors" | "duplicates">("description");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const { data: job, isLoading } = useQuery({
     queryKey: ["job", id],
     queryFn: () => jobsApi.get(id),
-  });
-
-  const { data: descriptionChanged = false } = useQuery({
-    queryKey: ["criteria-stale", id],
-    queryFn: () => criteriaApi.needsReextraction(id),
-    enabled: !!id,
   });
 
   const { data: bulkStatus } = useQuery({
@@ -195,15 +200,13 @@ export default function JobDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 4, marginBottom: 16, width: "fit-content" }}>
+      <div style={{ display: "flex", gap: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 4, marginBottom: 16, width: "fit-content", alignItems: "center" }}>
         {([
-          { key: "description", label: "Description",                                                    icon: Briefcase,     dot: false },
-          { key: "criteria",    label: "AI Criteria",                                                    icon: Sparkles,      dot: descriptionChanged },
-          { key: "candidates",  label: `Candidates${candidateCount > 0 ? ` (${candidateCount})` : ""}`, icon: UserCheck,     dot: false },
-          { key: "team",        label: `Team (${job.assignments.length})`,                               icon: Users,         dot: false },
-          { key: "history",     label: "History",                                                        icon: Clock,         dot: false },
-          { key: "errors",      label: "Parse Errors",                                                   icon: AlertTriangle, dot: false },
-          { key: "duplicates",  label: `Duplicates${duplicateCount > 0 ? ` (${duplicateCount})` : ""}`, icon: Copy,          dot: duplicateCount > 0 },
+          { key: "description", label: "Description",                                                    icon: Briefcase, dot: false },
+          { key: "criteria",    label: "AI Criteria",                                                    icon: Sparkles,  dot: false },
+          { key: "candidates",  label: `Candidates${candidateCount > 0 ? ` (${candidateCount})` : ""}`, icon: UserCheck, dot: false },
+          { key: "shortlist",   label: "AI Shortlist",                                                   icon: Sparkles,  dot: false },
+          { key: "team",        label: `Team (${job.assignments.length})`,                               icon: Users,     dot: false },
         ] as const).map(({ key, label, icon: Icon, dot }) => (
           <button key={key} onClick={() => setTab(key)} style={{ ...tabStyle(tab === key), position: "relative" }}>
             <Icon size={13} />
@@ -211,6 +214,55 @@ export default function JobDetailPage() {
             {dot && <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", border: "1px solid #fff" }} />}
           </button>
         ))}
+
+        {/* ── More dropdown ── */}
+        <div ref={moreRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setMoreOpen(o => !o)}
+            style={{
+              ...tabStyle(["history", "errors", "duplicates"].includes(tab)),
+              position: "relative",
+              gap: 4,
+            }}
+          >
+            ···
+            {/* dot if duplicates has items or a utility tab is active */}
+            {(duplicateCount > 0 || ["history", "errors", "duplicates"].includes(tab)) && (
+              <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: "50%", background: duplicateCount > 0 ? "#f59e0b" : "#4f46e5", border: "1px solid #fff" }} />
+            )}
+          </button>
+          {moreOpen && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 20,
+              background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.08)", padding: 4, minWidth: 160,
+              display: "flex", flexDirection: "column", gap: 2,
+            }}>
+              {([
+                { key: "history",    label: "History",     icon: Clock,         dot: false },
+                { key: "errors",     label: "Parse Errors", icon: AlertTriangle, dot: false },
+                { key: "duplicates", label: `Duplicates${duplicateCount > 0 ? ` (${duplicateCount})` : ""}`, icon: Copy, dot: duplicateCount > 0 },
+              ] as const).map(({ key, label, icon: Icon, dot }) => (
+                <button
+                  key={key}
+                  onClick={() => { setTab(key); setMoreOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "8px 12px",
+                    fontSize: 13, fontWeight: tab === key ? 600 : 400,
+                    background: tab === key ? "#eef2ff" : "transparent",
+                    color: tab === key ? "#4f46e5" : "#374151",
+                    border: "none", borderRadius: 7, cursor: "pointer", textAlign: "left",
+                    position: "relative",
+                  }}
+                >
+                  <Icon size={13} />
+                  {label}
+                  {dot && <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#f59e0b", flexShrink: 0 }} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab content */}
@@ -227,8 +279,9 @@ export default function JobDetailPage() {
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#374151" }} dangerouslySetInnerHTML={{ __html: job.description }} />
           </div>
         )}
-        {tab === "criteria"   && <CriteriaPanel jobId={job.id} descriptionChanged={descriptionChanged} />}
+        {tab === "criteria"   && <CriteriaPanel jobId={job.id} />}
         {tab === "candidates" && <CandidatesPanel jobId={job.id} />}
+        {tab === "shortlist"  && <ShortlistPanel jobId={job.id} />}
         {tab === "team"       && <AssignmentManager jobId={job.id} assignments={job.assignments} readonly={job.status === "closed"} />}
         {tab === "history"    && <StatusHistory jobId={id} />}
         {tab === "errors"     && <ParsingErrorsPanel jobId={job.id} />}
