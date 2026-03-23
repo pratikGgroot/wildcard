@@ -35,12 +35,32 @@ Return ONLY valid JSON matching this exact schema (no markdown, no explanation):
   "certifications": [{{"name": "string", "required": true, "weight": "high|medium|low", "confidence": 0.0}}]
 }}
 
+Category definitions — use these EXACTLY:
+
+education: Degrees, academic qualifications, and university/institution requirements.
+  - Includes: B.Tech, B.E., B.S., M.S., M.Tech, MBA, PhD, "Bachelor's", "Master's"
+  - Includes: Named institutions and their graduates — IIT, NIT, IIM, MIT, Stanford, Harvard, etc.
+  - Examples: "IITian" → education (level: "IIT graduate"), "NITian" → education (level: "NIT graduate"),
+    "B.Tech from IIT" → education, "Stanford graduate" → education
+  - Use field: "Computer Science" or similar if a subject is mentioned, otherwise null
+
+certifications: Professional or industry certifications issued by a certifying body.
+  - Includes: AWS Certified, Google Cloud Professional, PMP, CFA, CPA, CISSP, Scrum Master, etc.
+  - Does NOT include university degrees or institution names
+
+skills: Technical skills, programming languages, frameworks, tools, methodologies.
+  - Includes: Python, React, SQL, Docker, Agile, REST APIs, etc.
+  - Does NOT include institution names or degree types
+
+experience: Work experience requirements (years, domain, role type).
+
 Rules:
 - confidence: 0.0-1.0 based on how explicitly stated the requirement is
 - required: true only if explicitly stated as "must have", "required", or "essential"
 - Normalize skill names (e.g. "React.js" -> "React", "Postgres" -> "PostgreSQL")
 - Extract ALL skills: languages, frameworks, tools, methodologies
 - Return empty arrays for categories with no criteria found
+- When in doubt between education and certifications, prefer education for anything institution/degree-related
 """
 
 RESUME_EXTRACTION_PROMPT = """\

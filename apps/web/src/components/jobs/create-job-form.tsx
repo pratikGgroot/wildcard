@@ -90,6 +90,9 @@ export function CreateJobForm() {
     onSuccess: (job) => {
       setLastSaved(new Date());
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      // Criteria extraction is triggered server-side automatically.
+      // Invalidate so the criteria tab refreshes once we navigate there.
+      queryClient.invalidateQueries({ queryKey: ["criteria", job.id] });
       return job;
     },
     onError: () => toast.error("Failed to save draft"),

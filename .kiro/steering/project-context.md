@@ -93,8 +93,11 @@ All API routes are prefixed: `/api/v1/`
 
 ---
 
+## What Is Completed
+- Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
+
 ## What Is In Progress
-- Epic 05: AI Shortlisting — generating ranked shortlists with LLM reasoning (story 05.1 active)
+- Epic 06: Recruiter chat assistant (starting next)
 
 ## What Is NOT Yet Built
 - Authentication & RBAC (Epic 12)

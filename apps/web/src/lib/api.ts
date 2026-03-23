@@ -624,3 +624,112 @@ export interface RecalculationStatus {
   triggered_by: string | null;
   progress_pct: number;
 }
+
+// ── Shortlist types (Epic 05) ─────────────────────────────────────────────────
+
+export interface ShortlistCandidate {
+  id: string;
+  candidate_id: string;
+  rank: number;
+  fit_score: number;
+  confidence_level: "High" | "Medium" | "Low";
+  reasoning: string | null;
+  action: "accepted" | "rejected" | "deferred" | null;
+  action_taken_at: string | null;
+  rejection_reason: string | null;
+  full_name: string | null;
+  email: string | null;
+  technical_score: number | null;
+  culture_score: number | null;
+  growth_score: number | null;
+  total_years_experience: number | null;
+  top_skills: string[];
+}
+
+export interface NearMissCandidate {
+  candidate_id: string;
+  fit_score: number;
+  gap_to_threshold: number;
+  explanation: string;
+  full_name: string | null;
+  email: string | null;
+  technical_score: number | null;
+  culture_score: number | null;
+  growth_score: number | null;
+  total_years_experience: number | null;
+  top_skills: string[];
+}
+
+export interface NearMissResponse {
+  threshold_score: number;
+  threshold_n: number;
+  window: number;
+  near_misses: NearMissCandidate[];
+}
+
+export interface FeedbackStats {
+  job_id: string;
+  accepted_count: number;
+  rejected_count: number;
+  total_signals: number;
+  min_signals_required: number;
+  learned_weights: Record<string, number> | null;
+  signal_count_used: number;
+  computed_at: string | null;
+  is_personalized: boolean;
+}
+
+export interface Shortlist {
+  shortlist_id: string;
+  job_id: string;
+  status: "active" | "outdated" | "complete" | "not_generated";
+  threshold_n: number | null;
+  threshold_score: number | null;
+  total_candidates_scored: number;
+  shortlisted_count: number;
+  generated_at: string | null;
+  notice: string | null;
+  candidates: ShortlistCandidate[];
+}
+
+// ── Shortlist API ─────────────────────────────────────────────────────────────
+
+export const shortlistApi = {
+  generate: (jobId: string, n?: number) =>
+    api.post<Shortlist>(`/jobs/${jobId}/shortlist/generate`, null, { params: n ? { n } : {} }).then((r) => r.data),
+
+  get: (jobId: string) =>
+    api.get<Shortlist>(`/jobs/${jobId}/shortlist`).then((r) => r.data),
+
+  updateConfig: (jobId: string, n: number) =>
+    api.patch<Shortlist>(`/jobs/${jobId}/shortlist/config`, { n }).then((r) => r.data),
+
+  generateAllReasoning: (jobId: string) =>
+    api.post(`/jobs/${jobId}/shortlist/generate-all-reasoning`).then((r) => r.data),
+
+  generateReasoning: (jobId: string, scId: string) =>
+    api.post(`/jobs/${jobId}/shortlist/candidates/${scId}/reasoning`).then((r) => r.data),
+
+  takeAction: (jobId: string, scId: string, action: "accepted" | "rejected" | "deferred", reason?: string) =>
+    api.post(`/jobs/${jobId}/shortlist/candidates/${scId}/action`, { action, reason }).then((r) => r.data),
+
+  bulkAction: (jobId: string, shortlist_candidate_ids: string[], action: string, reason?: string) =>
+    api.post(`/jobs/${jobId}/shortlist/bulk-action`, { shortlist_candidate_ids, action, reason }).then((r) => r.data),
+
+  // 05.5 — Near-miss
+  getNearMisses: (jobId: string, window?: number) =>
+    api.get<NearMissResponse>(`/jobs/${jobId}/shortlist/near-misses`, { params: window ? { window } : {} }).then((r) => r.data),
+
+  promoteNearMiss: (jobId: string, candidateId: string) =>
+    api.post(`/jobs/${jobId}/shortlist/near-misses/promote`, { candidate_id: candidateId }).then((r) => r.data),
+
+  // 05.4 — Feedback loop
+  getFeedbackStats: (jobId: string) =>
+    api.get<FeedbackStats>(`/jobs/${jobId}/shortlist/feedback/stats`).then((r) => r.data),
+
+  optimizeWeights: (jobId: string) =>
+    api.post(`/jobs/${jobId}/shortlist/feedback/optimize`).then((r) => r.data),
+
+  resetWeights: (jobId: string) =>
+    api.post(`/jobs/${jobId}/shortlist/feedback/reset`).then((r) => r.data),
+};

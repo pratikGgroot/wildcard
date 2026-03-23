@@ -60,9 +60,10 @@ export function EditJobModal({ job, onClose }: Props) {
   const updateMutation = useMutation({
     mutationFn: (data: JobUpdateFormValues) => jobsApi.update(job.id, data),
     onSuccess: () => {
-      toast.success("Job updated");
+      toast.success("Job updated — AI criteria refreshing in background");
       queryClient.invalidateQueries({ queryKey: ["job", job.id] });
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["criteria", job.id] });
       queryClient.invalidateQueries({ queryKey: ["criteria-stale", job.id] });
       onClose();
     },

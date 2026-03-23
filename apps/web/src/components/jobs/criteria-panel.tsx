@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Sparkles, RefreshCw, CheckCircle2, AlertTriangle,
-  Zap, GraduationCap, Award, Briefcase, Clock,
+  Zap, GraduationCap, Award, Briefcase,
   Plus, Pencil, Trash2, X, Check,
 } from "lucide-react";
 import { criteriaApi, type Criterion, type CriterionType, type CriterionWeight } from "@/lib/api";
@@ -13,7 +13,6 @@ import { SuggestionsPanel } from "@/components/jobs/suggestions-panel";
 
 interface Props {
   jobId: string;
-  descriptionChanged?: boolean;
 }
 
 const TYPE_CONFIG: Record<CriterionType, { label: string; icon: React.ElementType; bg: string; color: string; border: string }> = {
@@ -337,9 +336,8 @@ function CriterionCard({ c, jobId }: CardProps) {
 }
 
 // ── Main panel ────────────────────────────────────────────────────────────────
-export function CriteriaPanel({ jobId, descriptionChanged }: Props) {
+export function CriteriaPanel({ jobId }: Props) {
   const queryClient = useQueryClient();
-  const [dismissedPrompt, setDismissedPrompt] = useState(false);
   const [addingForType, setAddingForType] = useState<CriterionType | null>(null);
 
   // Unsaved-changes guard: warn if user navigates away while an add row is open
@@ -366,7 +364,6 @@ export function CriteriaPanel({ jobId, descriptionChanged }: Props) {
     mutationFn: () => criteriaApi.extract(jobId),
     onSuccess: (res) => {
       queryClient.setQueryData(["criteria", jobId], res.criteria);
-      setDismissedPrompt(true);
       const msg = res.from_cache
         ? "Criteria loaded from cache"
         : `Extracted ${res.criteria.length} criteria${res.embedding_stored ? " · Embedding stored" : ""}`;
@@ -415,60 +412,29 @@ export function CriteriaPanel({ jobId, descriptionChanged }: Props) {
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        {/* Re-extract is only shown as a manual escape hatch, not the primary flow */}
+        {hasAnyCriteria && (
           <button
             onClick={() => extractMutation.mutate()}
             disabled={extractMutation.isPending}
+            title="Re-run AI extraction"
             style={{
-              display: "flex", alignItems: "center", gap: 6,
-              fontSize: 12, fontWeight: 600,
-              background: extractMutation.isPending ? "#e5e7eb" : "linear-gradient(135deg, #4f46e5, #7c3aed)",
-              color: extractMutation.isPending ? "#9ca3af" : "#fff",
-              border: "none", borderRadius: 8, padding: "7px 14px",
+              display: "flex", alignItems: "center", gap: 5,
+              fontSize: 11, fontWeight: 600, padding: "5px 10px",
+              background: "transparent", color: "#9ca3af",
+              border: "1px solid #e5e7eb", borderRadius: 7,
               cursor: extractMutation.isPending ? "not-allowed" : "pointer",
-              boxShadow: extractMutation.isPending ? "none" : "0 2px 8px rgba(79,70,229,0.25)",
             }}
           >
-            {extractMutation.isPending ? (
-              <>
-                <div style={{
-                  width: 12, height: 12, borderRadius: "50%",
-                  border: "2px solid rgba(0,0,0,0.15)", borderTopColor: "#6b7280",
-                  animation: "spin 0.8s linear infinite",
-                }} />
-                Extracting...
-              </>
-            ) : (
-              <>{hasAnyCriteria ? <RefreshCw size={12} /> : <Sparkles size={12} />} {hasAnyCriteria ? "Re-extract" : "Extract Criteria"}</>
-            )}
+            {extractMutation.isPending
+              ? <><div style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid #d1d5db", borderTopColor: "#6b7280", animation: "spin 0.8s linear infinite" }} /> Extracting…</>
+              : <><RefreshCw size={10} /> Re-extract</>
+            }
           </button>
-        </div>
+        )}
       </div>
 
       {/* Global add row — removed; use per-section + Add buttons instead */}
-
-      {/* Re-extract prompt */}
-      {descriptionChanged && !dismissedPrompt && hasAnyCriteria && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "12px 14px", borderRadius: 12, marginBottom: 16,
-          background: "#fffbeb", border: "1px solid #fde68a",
-        }}>
-          <Clock size={15} color="#d97706" style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", margin: 0 }}>Description changed</p>
-            <p style={{ fontSize: 12, color: "#b45309", margin: "2px 0 0" }}>Re-extract criteria to reflect the latest description.</p>
-          </div>
-          <div style={{ display: "flex", gap: 6 }}>
-            <button onClick={() => extractMutation.mutate()} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", background: "#d97706", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer" }}>
-              Yes, re-extract
-            </button>
-            <button onClick={() => setDismissedPrompt(true)} style={{ fontSize: 12, fontWeight: 500, padding: "5px 10px", background: "transparent", color: "#92400e", border: "1px solid #fde68a", borderRadius: 7, cursor: "pointer" }}>
-              Not now
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Low confidence warning */}
       {lowConfidenceCount > 0 && (
@@ -531,7 +497,7 @@ export function CriteriaPanel({ jobId, descriptionChanged }: Props) {
                     </span>
                   )}
                   <button
-                    onClick={() => { setAddingForType(type); setAddingGlobal(false); }}
+                    onClick={() => setAddingForType(type)}
                     style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, padding: "3px 8px", background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, borderRadius: 6, cursor: "pointer" }}
                   >
                     <Plus size={10} /> Add
