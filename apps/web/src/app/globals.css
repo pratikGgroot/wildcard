@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f4f5f7;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* Tiptap */
+.ProseMirror { outline: none; }
+.ProseMirror p { margin-bottom: 8px; line-height: 1.65; }
+.ProseMirror ul { list-style: disc; padding-left: 20px; margin-bottom: 8px; }
+.ProseMirror ol { list-style: decimal; padding-left: 20px; margin-bottom: 8px; }
+.ProseMirror strong { font-weight: 600; }
+.ProseMirror em { font-style: italic; }
+.ProseMirror h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: #111827; }
+.ProseMirror h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #374151; }
