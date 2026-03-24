@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Users, BarChart2, Settings, Sparkles, ChevronDown, LayoutTemplate, ExternalLink } from "lucide-react";
+import { Briefcase, Users, BarChart2, Settings, Sparkles, ChevronDown, LayoutTemplate, ExternalLink, LogOut } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { useState } from "react";
 
 const NAV = [
   {
@@ -29,6 +31,12 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const initials = user?.full_name
+    ? user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "?";
 
   return (
     <aside style={{
@@ -138,7 +146,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Notification + User footer */}
+      {/* User footer */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px" }}>
         {/* Careers portal quick link */}
         <Link
@@ -148,9 +156,7 @@ export function Sidebar() {
             display: "flex", alignItems: "center", gap: 8,
             padding: "8px 10px", borderRadius: 8, marginBottom: 8,
             textDecoration: "none", fontSize: 12, fontWeight: 500,
-            color: "rgba(255,255,255,0.4)",
-            background: "transparent",
-            transition: "all 0.15s",
+            color: "rgba(255,255,255,0.4)", background: "transparent", transition: "all 0.15s",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.06)";
@@ -164,29 +170,64 @@ export function Sidebar() {
           <ExternalLink size={13} color="rgba(255,255,255,0.3)" />
           <span>Careers Portal</span>
         </Link>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "8px 10px", borderRadius: 10,
-          background: "rgba(255,255,255,0.04)",
-          cursor: "pointer",
-        }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0,
-          }}>
-            A
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              Admin User
+
+        {/* User menu */}
+        <div style={{ position: "relative" }}>
+          <div
+            onClick={() => setMenuOpen((o) => !o)}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "8px 10px", borderRadius: 10,
+              background: "rgba(255,255,255,0.04)", cursor: "pointer",
+            }}
+          >
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%",
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 12, fontWeight: 700, flexShrink: 0,
+            }}>
+              {initials}
             </div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              admin@hireiq.com
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {user?.full_name ?? "—"}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {user?.role ?? ""}
+              </div>
             </div>
+            <ChevronDown
+              size={13}
+              color="rgba(255,255,255,0.3)"
+              style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
+            />
           </div>
-          <ChevronDown size={13} color="rgba(255,255,255,0.3)" />
+
+          {menuOpen && (
+            <div style={{
+              position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0,
+              background: "#1e293b", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 10, overflow: "hidden", zIndex: 50,
+            }}>
+              <div style={{ padding: "6px 12px 4px", fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {user?.email}
+              </div>
+              <button
+                onClick={() => { setMenuOpen(false); logout(); }}
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 8,
+                  padding: "9px 12px", background: "transparent", border: "none",
+                  color: "#fca5a5", fontSize: 13, cursor: "pointer", textAlign: "left",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>

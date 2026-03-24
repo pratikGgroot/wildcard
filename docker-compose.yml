@@ -77,6 +77,8 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       ENVIRONMENT: local
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LLM_PROVIDER: ollama
     depends_on:
       postgres:
         condition: service_healthy

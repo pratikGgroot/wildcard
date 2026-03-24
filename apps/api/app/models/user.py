@@ -24,6 +24,14 @@ class User(Base):
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
+    # Auth fields (Epic 12)
+    last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    refresh_token_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_reset_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # relationships
     created_jobs: Mapped[list["Job"]] = relationship(  # noqa: F821
         "Job", back_populates="creator", foreign_keys="Job.created_by"

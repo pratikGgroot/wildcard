@@ -5,6 +5,43 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// ── Auth token injection ──────────────────────────────────────────────────────
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("access_token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      try {
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (!refreshToken) throw new Error("no refresh token");
+        const { data } = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}/auth/refresh`,
+          { refresh_token: refreshToken }
+        );
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+        original.headers.Authorization = `Bearer ${data.access_token}`;
+        return api(original);
+      } catch {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Types matching the backend schemas
 export type JobType = "full-time" | "contract" | "internship";
 export type JobStatus = "draft" | "active" | "paused" | "closed";
@@ -732,4 +769,49 @@ export const shortlistApi = {
 
   resetWeights: (jobId: string) =>
     api.post(`/jobs/${jobId}/shortlist/feedback/reset`).then((r) => r.data),
+};
+
+// ── Auth types & API (Epic 12) ────────────────────────────────────────────────
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  mfa_enabled: boolean;
+  last_login: string | null;
+  created_at: string;
+}
+
+export const authApi = {
+  login: (data: LoginRequest) =>
+    api.post<TokenResponse>("/auth/login", data).then((r) => r.data),
+
+  refresh: (refresh_token: string) =>
+    api.post<TokenResponse>("/auth/refresh", { refresh_token }).then((r) => r.data),
+
+  logout: () => api.post("/auth/logout"),
+
+  me: () => api.get<CurrentUser>("/auth/me").then((r) => r.data),
+
+  changePassword: (current_password: string, new_password: string) =>
+    api.put("/auth/me/password", { current_password, new_password }),
+
+  requestPasswordReset: (email: string) =>
+    api.post("/auth/password-reset/request", { email }),
+
+  confirmPasswordReset: (token: string, new_password: string) =>
+    api.post("/auth/password-reset/confirm", { token, new_password }),
 };
