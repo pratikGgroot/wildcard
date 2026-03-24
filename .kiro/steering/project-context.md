@@ -61,10 +61,25 @@ apps/web/          — Next.js frontend
 - Manual score override
 - Files: `app/services/fit_score_service.py`, `app/services/embedding_service.py`, `app/tasks/score_tasks.py`
 
+### Authentication & RBAC (Epic 12) — ✅ COMPLETED by Yash
+- Email/password login with bcrypt password hashing (passlib)
+- JWT access tokens (15 min) + refresh tokens (7 days) with rotation
+- Refresh token hash stored in DB; silent refresh on 401 via axios interceptor
+- Role-based access: `viewer`, `recruiter`, `hiring_manager`, `admin` (hierarchy enforced)
+- `get_current_user`, `require_role()`, `require_min_role()` FastAPI dependencies in `app/api/deps.py`
+- Password reset flow (token-based, hashed in DB)
+- Frontend: `AuthProvider` + `useAuth()` hook, `RequireAuth` guard, login page, sidebar shows user name/role/sign-out
+- Seed users (from migration 0002, passwords fixed to bcrypt in migration 0018):
+  - `admin@hireiq.com` / `password123` — role: `admin`
+  - `recruiter@hireiq.com` / `password123` — role: `recruiter`
+  - `hiring@hireiq.com` / `password123` — role: `hiring_manager`
+- Files: `app/api/v1/auth.py`, `app/api/deps.py`, `app/services/auth_service.py`, `app/models/user.py`, `alembic/versions/0018_auth_rbac.py`, `src/lib/auth-context.tsx`, `src/lib/api.ts` (interceptors), `src/app/login/page.tsx`, `src/components/auth/require-auth.tsx`, `src/components/layout/sidebar.tsx`
+
 ### Infrastructure
 - Full Docker Compose setup: postgres, redis, minio, mailpit, api, web, worker
-- Alembic migrations (0001–0015)
+- Alembic migrations (0001–0018)
 - Celery worker for background jobs
+- `OLLAMA_BASE_URL: http://host.docker.internal:11434` set on both `api` and `worker` services in `docker-compose.yml` (required for LLM calls from inside Docker)
 
 ---
 
@@ -79,6 +94,8 @@ apps/web/          — Next.js frontend
 - `candidate_job_embeddings` — vector embeddings
 - `fit_scores` — calculated scores per candidate+job
 - `parsing_errors` — error queue for failed parses
+- `users` — auth users with `hashed_password`, `role`, `refresh_token_hash`, `last_login`, `mfa_secret`, `mfa_enabled`, `password_reset_token`, `password_reset_expires`
+- `auth_audit_log` — login/logout/password-change audit trail
 
 ## API Base URL
 All API routes are prefixed: `/api/v1/`
@@ -90,17 +107,19 @@ All API routes are prefixed: `/api/v1/`
 - LLM calls go through `app/services/llm_service.py` — do not call Ollama directly
 - All new API routes must be registered in `app/main.py`
 - Frontend API calls go through `src/lib/api.ts` — add new endpoints there
+- Auth: use `CurrentUser`, `AdminOnly`, `RecruiterOrAbove` from `app/api/deps.py` to protect routes
+- All API route handlers must be `async def` — never use sync `Session` in route handlers (use `AsyncSession`)
 
 ---
 
 ## What Is Completed
 - Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
+- Epic 12: Authentication & RBAC — fully done (login, JWT, refresh rotation, RBAC deps, frontend auth flow, seed users)
 
 ## What Is In Progress
 - Epic 06: Recruiter chat assistant (starting next)
 
 ## What Is NOT Yet Built
-- Authentication & RBAC (Epic 12)
 - Recruiter chat assistant (Epic 06)
 - Interview kit generation (Epic 07)
 - Bias detection & explainability (Epic 08)
