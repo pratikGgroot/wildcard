@@ -24,6 +24,7 @@ from app.services.skill_normalizer import SkillNormalizerService
 from app.services.duplicate_service import DuplicateDetectionService
 from app.services.embedding_service import SyncEmbeddingService
 from app.services.fit_score_service import SyncFitScoreService
+from app.services.pipeline_service import PipelineService
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +280,28 @@ def parse_resume(self, upload_id: str) -> dict:
                 logger.info("Fit score step for %s: %s", upload_id, score_result.get("status"))
             except Exception as exc:
                 logger.error("Fit scoring failed for %s: %s", upload_id, exc)
+
+            # ── Step 10: Add candidate to pipeline (Epic 09) ──────────────────
+            try:
+                import asyncio as _asyncio
+
+                async def _add_to_pipeline():
+                    from app.db.base import AsyncSessionLocal
+                    async with AsyncSessionLocal() as async_db:
+                        svc = PipelineService(async_db)
+                        # Place in Applied first (idempotent), then move to Screening
+                        await svc.add_candidate_to_pipeline(upload.job_id, candidate.id)
+                        # Now move to Screening (2nd stage)
+                        stages = await svc.get_stages(upload.job_id)
+                        screening = next((s for s in stages if s.name.lower() == "screening"), None)
+                        if screening:
+                            await svc.move_candidate(upload.job_id, candidate.id, screening.id, None, "Auto-moved after resume parsed")
+                        await async_db.commit()
+
+                _asyncio.run(_add_to_pipeline())
+                logger.info("Added candidate %s to pipeline (Screening) for job %s", candidate.id, upload.job_id)
+            except Exception as exc:
+                logger.error("Pipeline placement failed for %s: %s", upload_id, exc)
 
             logger.info(
                 "Resume parsed: upload=%s candidate=%s chars=%d scanned=%s",

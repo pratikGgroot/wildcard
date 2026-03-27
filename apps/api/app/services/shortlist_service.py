@@ -520,6 +520,24 @@ class ShortlistService:
 
         await db.commit()
 
+        # ── Auto-move in pipeline based on action ─────────────────────────────
+        if action in ("accepted", "rejected"):
+            try:
+                from app.services.pipeline_service import PipelineService
+                pipeline_svc = PipelineService(db)
+                stages = await pipeline_svc.get_stages(job_id)
+                if stages:
+                    stage_map = {s.name.lower(): s for s in stages}
+                    target_stage = stage_map.get("interview") if action == "accepted" else stage_map.get("rejected")
+                    if target_stage:
+                        await pipeline_svc.move_candidate(
+                            job_id, candidate_id, target_stage.id,
+                            performed_by, f"Auto-moved: shortlist {action}"
+                        )
+                        await db.commit()
+            except Exception as exc:
+                logger.warning("Pipeline auto-move failed for candidate %s: %s", candidate_id, exc)
+
         return {
             "status": "ok",
             "shortlist_candidate_id": str(shortlist_candidate_id),

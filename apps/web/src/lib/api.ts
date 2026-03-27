@@ -815,3 +815,63 @@ export const authApi = {
   confirmPasswordReset: (token: string, new_password: string) =>
     api.post("/auth/password-reset/confirm", { token, new_password }),
 };
+
+// ── Pipeline types & API (Epic 09) ────────────────────────────────────────────
+
+export interface PipelineStage {
+  id: string;
+  job_id: string;
+  name: string;
+  order: number;
+  color: string | null;
+  is_terminal: boolean;
+  created_at: string;
+}
+
+export interface PipelineCandidate {
+  placement_id: string;
+  candidate_id: string;
+  full_name: string | null;
+  email: string | null;
+  moved_at: string | null;
+  moved_by: string | null;
+}
+
+export interface PipelineColumn {
+  id: string;
+  name: string;
+  order: number;
+  color: string | null;
+  is_terminal: boolean;
+  candidates: PipelineCandidate[];
+}
+
+export interface PipelineAuditEntry {
+  id: string;
+  candidate_id: string;
+  job_id: string;
+  from_stage_id: string | null;
+  to_stage_id: string | null;
+  moved_by: string | null;
+  note: string | null;
+  moved_at: string;
+}
+
+export const pipelineApi = {
+  getBoard: (jobId: string) =>
+    api.get<PipelineColumn[]>(`/jobs/${jobId}/pipeline`).then((r) => r.data),
+
+  getStages: (jobId: string) =>
+    api.get<PipelineStage[]>(`/jobs/${jobId}/pipeline/stages`).then((r) => r.data),
+
+  moveCandidate: (jobId: string, candidate_id: string, stage_id: string, note?: string) =>
+    api.post(`/jobs/${jobId}/pipeline/move`, { candidate_id, stage_id, note }).then((r) => r.data),
+
+  bulkMove: (jobId: string, candidate_ids: string[], stage_id: string, note?: string) =>
+    api.post(`/jobs/${jobId}/pipeline/bulk-move`, { candidate_ids, stage_id, note }).then((r) => r.data),
+
+  getAudit: (jobId: string, candidate_id?: string) =>
+    api.get<PipelineAuditEntry[]>(`/jobs/${jobId}/pipeline/audit`, {
+      params: candidate_id ? { candidate_id } : {},
+    }).then((r) => r.data),
+};

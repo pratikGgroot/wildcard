@@ -108,8 +108,8 @@ export default function ShortlistPanel({ jobId }: Props) {
     setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
 
-  const pendingCandidates = shortlist?.candidates.filter(c => !c.action || c.action === "deferred") ?? [];
-  const actionedCandidates = shortlist?.candidates.filter(c => c.action && c.action !== "deferred") ?? [];
+  const pendingCandidates = (shortlist?.candidates ?? []).filter(c => !c.action || c.action === "deferred");
+  const actionedCandidates = (shortlist?.candidates ?? []).filter(c => c.action && c.action !== "deferred");
 
   if (isLoading) {
     return (

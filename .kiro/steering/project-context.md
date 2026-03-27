@@ -61,6 +61,19 @@ apps/web/          — Next.js frontend
 - Manual score override
 - Files: `app/services/fit_score_service.py`, `app/services/embedding_service.py`, `app/tasks/score_tasks.py`
 
+### Pipeline/Kanban Workflow (Epic 09) — ✅ COMPLETED by Yash
+- Default stages per job: Applied → Screening → Interview → Offer → Hired / Rejected
+- Stage CRUD + reorder per job (recruiter or above)
+- Candidate auto-placement: lands in **Applied** on resume upload, moves to **Screening** after parse completes
+- Shortlist action auto-moves: **accepted** → Interview, **rejected** → Rejected
+- Bulk move: select multiple candidates and move to any stage at once
+- Stage transition audit log (`pipeline_stage_audit` table)
+- Frontend: Kanban board on Pipeline tab of job detail page — search by name/email, parse status badge (green/grey/red), fit score on card, Move dropdown, bulk select + bulk move
+- RBAC: recruiter and above can move candidates; viewer gets 403
+- DB migration: `alembic/versions/0019_pipeline_stages.py` — creates `pipeline_stages`, `candidate_pipeline`, `pipeline_stage_audit`
+- Files: `app/models/pipeline.py`, `app/services/pipeline_service.py`, `app/api/v1/pipeline.py`, `app/tasks/resume_tasks.py` (auto-placement hook), `app/services/shortlist_service.py` (auto-move on accept/reject), `src/components/jobs/pipeline-panel.tsx`, `src/lib/api.ts` (pipelineApi)
+- **IMPORTANT for Pratik**: Do NOT touch `pipeline_stages`, `candidate_pipeline`, `pipeline_stage_audit` tables or `pipeline_service.py`. The pipeline auto-move on shortlist accept/reject is in `shortlist_service.py` `take_action()` — do not remove it.
+
 ### Authentication & RBAC (Epic 12) — ✅ COMPLETED by Yash
 - Email/password login with bcrypt password hashing (passlib)
 - JWT access tokens (15 min) + refresh tokens (7 days) with rotation
@@ -77,7 +90,7 @@ apps/web/          — Next.js frontend
 
 ### Infrastructure
 - Full Docker Compose setup: postgres, redis, minio, mailpit, api, web, worker
-- Alembic migrations (0001–0018)
+- Alembic migrations (0001–0019)
 - Celery worker for background jobs
 - `OLLAMA_BASE_URL: http://host.docker.internal:11434` set on both `api` and `worker` services in `docker-compose.yml` (required for LLM calls from inside Docker)
 
@@ -96,6 +109,9 @@ apps/web/          — Next.js frontend
 - `parsing_errors` — error queue for failed parses
 - `users` — auth users with `hashed_password`, `role`, `refresh_token_hash`, `last_login`, `mfa_secret`, `mfa_enabled`, `password_reset_token`, `password_reset_expires`
 - `auth_audit_log` — login/logout/password-change audit trail
+- `pipeline_stages` — per-job Kanban stages (name, order, color, is_terminal)
+- `candidate_pipeline` — candidate's current stage per job (unique per candidate+job)
+- `pipeline_stage_audit` — full history of every stage transition with who moved and when
 
 ## API Base URL
 All API routes are prefixed: `/api/v1/`
@@ -115,15 +131,17 @@ All API routes are prefixed: `/api/v1/`
 ## What Is Completed
 - Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
 - Epic 12: Authentication & RBAC — fully done (login, JWT, refresh rotation, RBAC deps, frontend auth flow, seed users)
+- Epic 09: Pipeline/Kanban workflow — fully done by Yash (see details below)
 
 ## What Is In Progress
-- Epic 06: Recruiter chat assistant (starting next)
+- Epic 10: Notifications & email (Yash — starting next)
+- Epic 08: Bias detection & explainability (Yash — starting next)
+- Epic 06: Recruiter chat assistant (Pratik — starting next)
 
 ## What Is NOT Yet Built
 - Recruiter chat assistant (Epic 06)
 - Interview kit generation (Epic 07)
 - Bias detection & explainability (Epic 08)
-- Pipeline/Kanban workflow (Epic 09)
 - Notifications & email (Epic 10)
 - Reporting & analytics (Epic 11)
 - Data privacy & compliance (Epic 13)

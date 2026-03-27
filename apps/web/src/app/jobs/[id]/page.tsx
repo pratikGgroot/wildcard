@@ -17,6 +17,7 @@ import { SaveTemplateModal } from "@/components/jobs/save-template-modal";
 import { ParsingErrorsPanel } from "@/components/jobs/parsing-errors-panel";
 import { DuplicatesPanel } from "@/components/jobs/duplicates-panel";
 import ShortlistPanel from "@/components/jobs/shortlist-panel";
+import PipelinePanel from "@/components/jobs/pipeline-panel";
 
 const STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
   draft:  { label: "Draft",  bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
@@ -63,7 +64,7 @@ export default function JobDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
-  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "team" | "history" | "errors" | "duplicates">("description");
+  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "pipeline" | "team" | "history" | "errors" | "duplicates">("description");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +93,14 @@ export default function JobDetailPage() {
     queryFn: () => duplicatesApi.listForJob(id),
     enabled: !!id,
     staleTime: 30_000,
+  });
+
+  // Hoist rankings here so both Candidates and Pipeline share the same data
+  const { data: rankings = [] } = useQuery({
+    queryKey: ["fit-rankings", id, "fit"],
+    queryFn: () => fitScoreApi.getRankings(id, "fit"),
+    enabled: !!id,
+    staleTime: 0,
   });
 
   const statusMutation = useMutation({
@@ -206,6 +215,7 @@ export default function JobDetailPage() {
           { key: "criteria",    label: "AI Criteria",                                                    icon: Sparkles,  dot: false },
           { key: "candidates",  label: `Candidates${candidateCount > 0 ? ` (${candidateCount})` : ""}`, icon: UserCheck, dot: false },
           { key: "shortlist",   label: "AI Shortlist",                                                   icon: Sparkles,  dot: false },
+          { key: "pipeline",    label: "Pipeline",                                                       icon: Users,     dot: false },
           { key: "team",        label: `Team (${job.assignments.length})`,                               icon: Users,     dot: false },
         ] as const).map(({ key, label, icon: Icon, dot }) => (
           <button key={key} onClick={() => setTab(key)} style={{ ...tabStyle(tab === key), position: "relative" }}>
@@ -280,8 +290,9 @@ export default function JobDetailPage() {
           </div>
         )}
         {tab === "criteria"   && <CriteriaPanel jobId={job.id} />}
-        {tab === "candidates" && <CandidatesPanel jobId={job.id} />}
+        {tab === "candidates" && <CandidatesPanel jobId={job.id} rankings={rankings} />}
         {tab === "shortlist"  && <ShortlistPanel jobId={job.id} />}
+        {tab === "pipeline"   && <PipelinePanel jobId={job.id} rankings={rankings} />}
         {tab === "team"       && <AssignmentManager jobId={job.id} assignments={job.assignments} readonly={job.status === "closed"} />}
         {tab === "history"    && <StatusHistory jobId={id} />}
         {tab === "errors"     && <ParsingErrorsPanel jobId={job.id} />}
@@ -317,7 +328,7 @@ export default function JobDetailPage() {
 }
 
 // ── Candidates panel ──────────────────────────────────────────────────────────
-function CandidatesPanel({ jobId }: { jobId: string }) {
+function CandidatesPanel({ jobId, rankings }: { jobId: string; rankings: import("@/lib/api").CandidateRanking[] }) {
   const queryClient = useQueryClient();
   const [sortBy, setSortBy] = useState<"fit" | "technical" | "culture" | "growth">("fit");
 
@@ -327,11 +338,15 @@ function CandidatesPanel({ jobId }: { jobId: string }) {
     staleTime: 5000,
   });
 
-  const { data: rankings = [] } = useQuery({
+  // Use sortBy-specific rankings only when non-fit sort is selected
+  const { data: sortedRankings = rankings } = useQuery({
     queryKey: ["fit-rankings", jobId, sortBy],
     queryFn: () => fitScoreApi.getRankings(jobId, sortBy),
-    staleTime: 30_000,
+    staleTime: 0,
+    enabled: sortBy !== "fit", // "fit" is already provided by parent
   });
+
+  const activeRankings = sortBy === "fit" ? rankings : sortedRankings;
 
   // Poll recalculation status every 4s when running/pending
   const { data: recalcStatus } = useQuery({
@@ -366,7 +381,7 @@ function CandidatesPanel({ jobId }: { jobId: string }) {
     mutationFn: () => fitScoreApi.scoreAll(jobId),
     onSuccess: (res) => {
       toast.success(`Scored ${res.scored} candidate${res.scored !== 1 ? "s" : ""}`);
-      queryClient.invalidateQueries({ queryKey: ["fit-rankings", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["fit-rankings", jobId, "fit"] });
     },
     onError: () => toast.error("Scoring failed"),
   });
@@ -395,14 +410,14 @@ function CandidatesPanel({ jobId }: { jobId: string }) {
   }
 
   // Build a map from candidate_id → full ranking object for quick lookup
-  const rankingMap: Record<string, typeof rankings[0]> = {};
-  rankings.forEach((r) => { rankingMap[r.candidate_id] = r; });
+  const rankingMap: Record<string, typeof activeRankings[0]> = {};
+  activeRankings.forEach((r) => { rankingMap[r.candidate_id] = r; });
 
   const completedCount = bulkStatus.uploads.filter((u) => u.status === "completed").length;
   const isRecalculating = recalcStatus?.status === "running" || recalcStatus?.status === "pending";
 
   // Check if any ranking has multi-dim scores
-  const hasMultiDim = rankings.some((r) => r.technical_score !== null);
+  const hasMultiDim = activeRankings.some((r) => r.technical_score !== null);
 
   return (
     <div>
