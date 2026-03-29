@@ -137,12 +137,12 @@ All API routes are prefixed: `/api/v1/`
 - Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
 - Epic 06: Recruiter chat assistant — all P0 + P1 stories done (06.1 chat UI, 06.2 intent routing, 06.3 semantic search, 06.4 pipeline filter, 06.5 candidate comparison, 06.6 action execution/move candidate with confirmation, 06.7 conversation context, 06.8 response generation with links). Chat assistant uses hybrid approach: rule-based intent routing bypasses LLM for data queries (zero hallucination), LLM used only for open-ended conversational fallback.
 - Epic 07: Interview kit generation — fully done (07.1 skill gap analysis, 07.2 technical questions, 07.3 behavioral questions, 07.4 gap-probe questions, 07.5 scoring rubric with LLM generation + per-question display, 07.6 kit review UI with approve/edit/delete/add questions, 07.7 PDF export via print page + share links with 30-day expiry)
+- Epic 11: Reporting & Analytics — fully done (11.1 overview KPIs, 11.2 time-in-stage funnel, 11.3 score distribution histogram, 11.4 source-of-hire breakdown, 11.5 bias analytics with proxy-based variance detection, 11.6 recruiter activity report, 11.7 CSV + PDF export). Analytics page at `/analytics`, print page at `/analytics/print`. Backend: `app/api/v1/analytics.py`. Frontend: `src/app/analytics/page.tsx`.
 - Epic 12: Authentication & RBAC — fully done (login, JWT, refresh rotation, RBAC deps, frontend auth flow, seed users)
 - Epic 09: Pipeline/Kanban workflow — fully done by Yash
 
 ## What Is In Progress
-- Epic 11: Reporting & analytics (Pratik — starting next)
-- Epic 10: Notifications & email (Yash — starting next)
+- Epic 11: Reporting & analytics (Pratik — starting next)- Epic 10: Notifications & email (Yash — starting next)
 - Epic 08: Bias detection & explainability (Yash — starting next)
 
 ## What Is NOT Yet Built
@@ -166,7 +166,8 @@ Owns: Epic 05, Epic 06, Epic 07, Epic 11
 - Epic 05: Shortlist generation (05.1, 05.2, 05.3) — ✅ done
 - Epic 06: Chat assistant UI, intent routing, semantic search, pipeline filter, conversation context, response generation (06.1, 06.2, 06.3, 06.4, 06.7, 06.8) — ✅ done
 - Epic 07: Skill gap analysis, technical/behavioral/gap-probe question generation, kit review UI (07.1, 07.2, 07.3, 07.4, 07.6) — ✅ done
-- Epic 11: Overview dashboard, time-in-stage, scoring distribution, bias analytics, CSV/PDF export (11.1, 11.2, 11.3, 11.5, 11.7) — **next up**
+- Epic 11: Overview dashboard, time-in-stage, scoring distribution, bias analytics, CSV/PDF export (11.1, 11.2, 11.3, 11.5, 11.7) — ✅ done
+- Epic 11: Source-of-hire tracking, recruiter activity report (11.4, 11.6) — ✅ done
 
 **Should Have (P1) — do after P0:**
 - Epic 05: Feedback loop, near-miss candidates (05.4, 05.5) — ✅ done
