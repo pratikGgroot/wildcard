@@ -18,7 +18,7 @@ const NAV = [
   {
     label: "Intelligence",
     items: [
-      { href: "/analytics", icon: BarChart2, label: "Analytics", soon: true },
+      { href: "/analytics", icon: BarChart2, label: "Analytics" },
     ],
   },
   {

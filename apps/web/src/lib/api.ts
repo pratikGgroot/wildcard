@@ -1072,3 +1072,175 @@ export const interviewKitApi = {
   getKitById: (kitId: string) =>
     api.get<InterviewKit>(`/interview-kits/${kitId}`).then((r) => r.data),
 };
+
+// ── Analytics (Epic 11) ───────────────────────────────────────────────────────
+
+export interface AnalyticsOverview {
+  open_roles: number;
+  total_applicants: number;
+  shortlisted: number;
+  in_interview: number;
+  offers_made: number;
+  hired: number;
+  funnel: { stage: string; count: number; pct: number }[];
+}
+
+export interface JobBreakdown {
+  job_id: string;
+  title: string;
+  status: string;
+  applicants: number;
+  screening: number;
+  interview: number;
+  offer: number;
+  hired: number;
+  avg_score: number | null;
+}
+
+export interface TimeInStage {
+  stage: string;
+  order: number;
+  avg_days: number;
+}
+
+export interface ScoreBucket {
+  range: string;
+  start: number;
+  count: number;
+}
+
+export interface ScoreDistribution {
+  buckets: ScoreBucket[];
+  mean_score: number | null;
+  total: number;
+}
+
+export interface BiasGroup {
+  job_id: string;
+  group: string;
+  mean_score: number;
+  count: number;
+}
+
+export interface BiasAnalytics {
+  flagged_jobs: { job_id: string; job_title: string }[];
+  flagged_count: number;
+  location_distribution: BiasGroup[];
+  education_distribution: BiasGroup[];
+  variance_threshold: number;
+  disclaimer: string;
+}
+
+export interface SourceOfHire {
+  source: string;
+  applicants: number;
+  hired: number;
+  conversion_rate: number;
+  pct_of_total: number;
+}
+
+export interface RecruiterActivity {
+  user_id: string;
+  name: string;
+  email: string;
+  role: string;
+  pipeline_moves: number;
+  shortlist_actions: number;
+  resume_uploads: number;
+  total_actions: number;
+}
+
+export const analyticsApi = {
+  getOverview: (params?: { job_id?: string; date_from?: string; date_to?: string }) =>
+    api.get<AnalyticsOverview>("/analytics/overview", { params }).then((r) => r.data),
+
+  getTimeInStage: (params?: { job_id?: string; date_from?: string; date_to?: string }) =>
+    api.get<TimeInStage[]>("/analytics/time-in-stage", { params }).then((r) => r.data),
+
+  getScoreDistribution: (params?: { job_id?: string; date_from?: string; date_to?: string }) =>
+    api.get<ScoreDistribution>("/analytics/score-distribution", { params }).then((r) => r.data),
+
+  getBias: (params?: { job_id?: string }) =>
+    api.get<BiasAnalytics>("/analytics/bias", { params }).then((r) => r.data),
+
+  getJobsBreakdown: () =>
+    api.get<JobBreakdown[]>("/analytics/jobs-breakdown").then((r) => r.data),
+
+  getSourceOfHire: (params?: { job_id?: string; date_from?: string; date_to?: string }) =>
+    api.get<SourceOfHire[]>("/analytics/source-of-hire", { params }).then((r) => r.data),
+
+  getRecruiterActivity: (params?: { date_from?: string; date_to?: string }) =>
+    api.get<RecruiterActivity[]>("/analytics/recruiter-activity", { params }).then((r) => r.data),
+
+  getExportCsvUrl: (params?: { job_id?: string; date_from?: string; date_to?: string }) => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+    const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : "";
+    const qs = new URLSearchParams({ ...(params ?? {}), token: token ?? "" }).toString();
+    return `${base}/analytics/export/csv?${qs}`;
+  },
+};
+
+// ── Advanced Analytics ────────────────────────────────────────────────────────
+
+export interface AnalyticsInsight {
+  type: "success" | "warning" | "info" | "action";
+  message: string;
+}
+
+export interface QualityTrendPoint {
+  week: string;
+  avg_score: number;
+  count: number;
+}
+
+export interface TimeToHire {
+  job_id: string;
+  title: string;
+  days_to_hire: number | null;
+  applicants: number;
+  status: "green" | "yellow" | "red" | "grey";
+  label: string;
+}
+
+export interface SkillGap {
+  skill: string;
+  weight: string;
+  candidates_with_skill: number;
+  total_candidates: number;
+  match_pct: number;
+  gap_pct: number;
+  severity: "critical" | "moderate" | "good";
+}
+
+export interface ShortlistAccuracy {
+  per_job: {
+    job_title: string;
+    accepted: number;
+    rejected: number;
+    deferred: number;
+    total: number;
+    accuracy_pct: number;
+    avg_accepted_score: number | null;
+    avg_rejected_score: number | null;
+  }[];
+  overall_accuracy: number | null;
+  overall_total: number;
+}
+
+// Extend analyticsApi with advanced endpoints
+export const advancedAnalyticsApi = {
+  getInsights: (params?: { job_id?: string }) =>
+    api.get<{ insights: AnalyticsInsight[]; stats: any }>("/analytics/insights", { params }).then((r) => r.data),
+
+  getQualityTrend: (params?: { job_id?: string }) =>
+    api.get<QualityTrendPoint[]>("/analytics/quality-trend", { params }).then((r) => r.data),
+
+  getTimeToHire: () =>
+    api.get<TimeToHire[]>("/analytics/time-to-hire").then((r) => r.data),
+
+  getSkillsGap: (params?: { job_id?: string }) =>
+    api.get<SkillGap[]>("/analytics/skills-gap", { params }).then((r) => r.data),
+
+  getShortlistAccuracy: (params?: { job_id?: string }) =>
+    api.get<ShortlistAccuracy>("/analytics/shortlist-accuracy", { params }).then((r) => r.data),
+};
