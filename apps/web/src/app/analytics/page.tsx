@@ -326,47 +326,6 @@ export default function AnalyticsPage() {
         </SectionCard>
       </div>
 
-      {/* 11.5 Bias analytics */}
-      <SectionCard icon={AlertTriangle} title="Bias Analytics">        {loadingBias ? <Skeleton w="100%" h={100} /> : !bias ? null : (
-          <>
-            {bias.flagged_count > 0 ? (
-              <div style={{ padding: "12px 16px", borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#dc2626" }}>
-                    {bias.flagged_count} job{bias.flagged_count > 1 ? "s" : ""} flagged for potential score variance
-                  </div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                    {bias.flagged_jobs.map((j) => j.job_title).join(", ")}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ padding: "12px 16px", borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-                <CheckCircle2 size={16} color="#059669" />
-                <span style={{ fontSize: 13, color: "#059669", fontWeight: 600 }}>No significant score variance detected across demographic proxy groups</span>
-              </div>
-            )}
-
-            {bias.location_distribution.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 8 }}>Score by Location (proxy)</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {bias.location_distribution.slice(0, 15).map((g, i) => (
-                    <div key={i} style={{ padding: "5px 10px", borderRadius: 8, background: "#f9fafb", border: "1px solid #e5e7eb", fontSize: 12 }}>
-                      <span style={{ fontWeight: 600, color: "#374151" }}>{g.group}</span>
-                      <span style={{ color: "#6b7280", marginLeft: 6 }}>{g.mean_score} avg · {g.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p style={{ fontSize: 11, color: "#9ca3af", margin: 0, fontStyle: "italic" }}>{bias.disclaimer}</p>
-          </>
-        )}
-      </SectionCard>
-
       {/* 11.4 Source of hire */}
       <div style={{ marginTop: 20 }}>
         <SectionCard icon={Users} title="Source of Hire">
