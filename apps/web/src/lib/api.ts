@@ -1244,3 +1244,52 @@ export const advancedAnalyticsApi = {
   getShortlistAccuracy: (params?: { job_id?: string }) =>
     api.get<ShortlistAccuracy>("/analytics/shortlist-accuracy", { params }).then((r) => r.data),
 };
+
+// ── Admin Panel (Epic 16) ─────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  last_login: string | null;
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  admin_user_id: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  before_state: Record<string, any> | null;
+  after_state: Record<string, any> | null;
+  ip_address: string | null;
+  performed_at: string;
+  admin_name: string | null;
+}
+
+export const adminApi = {
+  // Users
+  listUsers: (params?: { role?: string; search?: string; include_inactive?: boolean }) =>
+    api.get<AdminUser[]>("/admin/users", { params }).then(r => r.data),
+  createUser: (data: { email: string; full_name: string; role: string; password: string }) =>
+    api.post<AdminUser>("/admin/users", data).then(r => r.data),
+  updateUser: (id: string, data: { full_name?: string; role?: string; is_active?: boolean }) =>
+    api.put<AdminUser>(`/admin/users/${id}`, data).then(r => r.data),
+  deactivateUser: (id: string) =>
+    api.delete(`/admin/users/${id}`),
+
+  // Settings
+  listSettings: () =>
+    api.get<{ key: string; value: any; updated_at: string | null }[]>("/admin/settings").then(r => r.data),
+  getSetting: (key: string) =>
+    api.get<{ key: string; value: any }>(`/admin/settings/${key}`).then(r => r.data),
+  updateSetting: (key: string, value: Record<string, any>) =>
+    api.put(`/admin/settings/${key}`, value).then(r => r.data),
+
+  // Audit log
+  getAuditLog: (params?: { resource_type?: string; limit?: number }) =>
+    api.get<AdminAuditEntry[]>("/admin/audit-log", { params }).then(r => r.data),
+};

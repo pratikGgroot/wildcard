@@ -179,6 +179,9 @@ class LLMService:
     def __init__(self) -> None:
         self.provider = settings.LLM_PROVIDER
 
+    def _resolve_provider(self, provider_override: str | None = None) -> str:
+        return provider_override or self.provider
+
     # ── Public API ────────────────────────────────────────────────────────────
 
     async def health_check(self) -> dict[str, Any]:
@@ -218,26 +221,24 @@ class LLMService:
 
         return {"provider": self.provider, "status": "unknown"}
 
-    async def extract_resume_entities(self, resume_text: str) -> ResumeProfile:
+    async def extract_resume_entities(self, resume_text: str, provider: str | None = None, model: str | None = None) -> ResumeProfile:
         """
         Extract structured entities from raw resume text using the LLM.
         Falls back to an empty profile on failure (never raises).
-        Celery tasks call this via asyncio.run() since Celery workers are sync.
         """
-        # Truncate to ~12000 chars to stay within token budget (llama3.2 supports it)
         text = resume_text[:12000].strip()
+        active_provider = self._resolve_provider(provider)
 
         try:
-            if self.provider == "ollama":
-                raw = await self._ollama_resume_chat(text)
-            elif self.provider == "openai":
+            if active_provider == "ollama":
+                raw = await self._ollama_resume_chat(text, model_override=model)
+            elif active_provider == "openai":
                 raw = await self._openai_resume_chat(text)
             else:
                 logger.info("LLM provider is mock — skipping resume entity extraction")
                 return ResumeProfile()
 
             profile = self._parse_resume_profile(raw)
-            # Post-process: scan raw text for skill sections the LLM may have missed
             profile.skills = _merge_skills_from_text(profile.skills, text)
             return profile
 
@@ -274,7 +275,7 @@ class LLMService:
             logger.error("LLM extraction failed: %s — using mock fallback", exc)
             return self._mock_extract(clean_text)
 
-    async def generate_embedding(self, text: str) -> list[float] | None:
+    async def generate_embedding(self, text: str, embed_model: str | None = None, api_key: str | None = None) -> list[float] | None:
         """Generate a text embedding vector. Returns None if unavailable."""
         clean_text = re.sub(r"<[^>]+>", " ", text).strip()[:4000]
 
@@ -283,9 +284,9 @@ class LLMService:
 
         try:
             if self.provider == "ollama":
-                return await self._ollama_embed(clean_text)
+                return await self._ollama_embed(clean_text, model_override=embed_model)
             elif self.provider == "openai":
-                return await self._openai_embed(clean_text)
+                return await self._openai_embed(clean_text, api_key=api_key)
         except Exception as exc:
             logger.warning("Embedding generation failed: %s", exc)
 
@@ -299,13 +300,14 @@ class LLMService:
         stop=stop_after_attempt(3),
         reraise=True,
     )
-    async def _ollama_chat(self, text: str) -> str:
+    async def _ollama_chat(self, text: str, model_override: str | None = None) -> str:
         prompt = EXTRACTION_PROMPT.format(job_description=text)
+        model = model_override or settings.OLLAMA_MODEL
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{settings.OLLAMA_BASE_URL}/api/generate",
                 json={
-                    "model": settings.OLLAMA_MODEL,
+                    "model": model,
                     "prompt": prompt,
                     "stream": False,
                     "format": "json",
@@ -319,14 +321,15 @@ class LLMService:
             data = resp.json()
             return data.get("response", "")
 
-    async def _ollama_embed(self, text: str) -> list[float]:
+    async def _ollama_embed(self, text: str, model_override: str | None = None) -> list[float]:
         """Generate embedding using Ollama. Supports both old and new API formats."""
+        model = model_override or settings.OLLAMA_EMBED_MODEL
         async with httpx.AsyncClient(timeout=30.0) as client:
             # Try new /api/embed endpoint first (Ollama >= 0.1.26)
             try:
                 resp = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/embed",
-                    json={"model": settings.OLLAMA_EMBED_MODEL, "input": text},
+                    json={"model": model, "input": text},
                 )
                 resp.raise_for_status()
                 data = resp.json()
@@ -339,7 +342,7 @@ class LLMService:
             # Legacy /api/embeddings endpoint
             resp = await client.post(
                 f"{settings.OLLAMA_BASE_URL}/api/embeddings",
-                json={"model": settings.OLLAMA_EMBED_MODEL, "prompt": text},
+                json={"model": model, "prompt": text},
             )
             resp.raise_for_status()
             return resp.json()["embedding"]
@@ -410,11 +413,12 @@ class LLMService:
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
 
-    async def _openai_embed(self, text: str) -> list[float]:
+    async def _openai_embed(self, text: str, api_key: str | None = None) -> list[float]:
+        key = api_key or settings.OPENAI_API_KEY
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
                 "https://api.openai.com/v1/embeddings",
-                headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+                headers={"Authorization": f"Bearer {key}"},
                 json={"model": "text-embedding-3-small", "input": text},
             )
             resp.raise_for_status()

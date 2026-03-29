@@ -40,5 +40,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
+    # Encryption (for storing API keys in DB)
+    ENCRYPTION_KEY: str = "dev-32-byte-key-replace-in-prod!"
+
 
 settings = Settings()

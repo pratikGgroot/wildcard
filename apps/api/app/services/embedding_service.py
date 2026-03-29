@@ -118,6 +118,10 @@ class EmbeddingService:
 
     async def embed_candidate(self, db: AsyncSession, candidate_id: uuid.UUID) -> dict:
         """Generate and store embedding for a candidate. Returns status dict."""
+        from app.services.settings_service import get_ai_settings
+        ai_cfg = await get_ai_settings(db)
+        embed_model = ai_cfg.get("embed_model", EMBED_MODEL)
+
         result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
         candidate = result.scalar_one_or_none()
         if not candidate:
@@ -126,8 +130,8 @@ class EmbeddingService:
         if not candidate.parsed_data:
             return {"status": "skipped", "detail": "No parsed data available"}
 
-        text = build_candidate_embedding_text(candidate)
-        input_hash = _hash_text(text)
+        embed_text = build_candidate_embedding_text(candidate)
+        input_hash = _hash_text(embed_text)
 
         # Check if already embedded with same content
         existing = await db.execute(
@@ -137,9 +141,8 @@ class EmbeddingService:
         if existing.fetchone():
             return {"status": "cached", "candidate_id": str(candidate_id)}
 
-        embedding = await _llm.generate_embedding(text)
+        embedding = await _llm.generate_embedding(embed_text, embed_model=embed_model)
         if embedding is None:
-            # Mark as pending if LLM unavailable
             candidate.embedding_status = "pending"
             await db.commit()
             return {"status": "pending", "detail": "Embedding model unavailable"}
@@ -152,7 +155,7 @@ class EmbeddingService:
             "status": "completed",
             "candidate_id": str(candidate_id),
             "dims": len(embedding),
-            "model": EMBED_MODEL,
+            "model": embed_model,
         }
 
     async def embed_job(self, db: AsyncSession, job_id: uuid.UUID) -> dict:

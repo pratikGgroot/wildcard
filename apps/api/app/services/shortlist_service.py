@@ -62,8 +62,13 @@ class ShortlistService:
     ) -> dict:
         """
         Generate or refresh the shortlist for a job.
-        Uses top 15% or top 20 (whichever is smaller) by default.
+        Uses admin-configured shortlist_threshold (min score) if set,
+        otherwise falls back to top 15% or top 20 (whichever is smaller).
         """
+        from app.services.settings_service import get_ai_settings
+        ai_cfg = await get_ai_settings(db)
+        min_score_threshold = ai_cfg.get("shortlist_threshold", 60)
+
         # Get all current fit scores for this job, ranked desc
         rows = await db.execute(
             text("""
@@ -93,10 +98,15 @@ class ShortlistService:
                 "detail": "No scored candidates found. Run score-all first.",
             }
 
-        # Determine N
+        # Determine N — respect explicit n, otherwise use score threshold from admin settings
         if n is None:
-            auto_n = min(20, max(1, int(total * 0.15)))
-            n = auto_n
+            # Filter by admin-configured minimum score threshold
+            above_threshold = [r for r in all_scores if float(r[1]) >= min_score_threshold]
+            if above_threshold:
+                n = len(above_threshold)
+            else:
+                # Fallback: top 15% or top 20
+                n = min(20, max(1, int(total * 0.15)))
 
         shortlisted = all_scores[:n]
         threshold_score = float(shortlisted[-1][1]) if shortlisted else 0.0
