@@ -538,6 +538,26 @@ class ShortlistService:
             except Exception as exc:
                 logger.warning("Pipeline auto-move failed for candidate %s: %s", candidate_id, exc)
 
+        # ── Notify assigned users ──────────────────────────────────────────────
+        try:
+            from app.services.notification_service import notify_shortlist_action
+            from sqlalchemy import select as sa_select
+            from app.models.candidate import Candidate
+            from app.models.job import Job
+            cand = (await db.execute(sa_select(Candidate).where(Candidate.id == candidate_id))).scalar_one_or_none()
+            job = (await db.execute(sa_select(Job).where(Job.id == job_id))).scalar_one_or_none()
+            if cand and job:
+                await notify_shortlist_action(
+                    db, job_id, candidate_id,
+                    cand.full_name or "Unknown",
+                    job.title,
+                    action,
+                    performed_by,
+                )
+                await db.commit()
+        except Exception as exc:
+            logger.warning("Shortlist notification failed: %s", exc)
+
         return {
             "status": "ok",
             "shortlist_candidate_id": str(shortlist_candidate_id),

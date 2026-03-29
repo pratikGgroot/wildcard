@@ -14,6 +14,7 @@ from app.api.v1.pipeline import router as pipeline_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.interview_kits import router as interview_kits_router
 from app.api.v1.analytics import router as analytics_router
+from app.api.v1.notifications import router as notifications_router
 from app.core.config import settings
 from app.services.llm_service import LLMService
 
@@ -47,6 +48,7 @@ app.include_router(pipeline_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(interview_kits_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
 
 
 @app.get("/health")

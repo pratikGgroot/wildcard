@@ -1244,3 +1244,47 @@ export const advancedAnalyticsApi = {
   getShortlistAccuracy: (params?: { job_id?: string }) =>
     api.get<ShortlistAccuracy>("/analytics/shortlist-accuracy", { params }).then((r) => r.data),
 };
+
+// ── Notifications (Epic 10) ───────────────────────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationPrefs {
+  email_pipeline_moves: boolean;
+  email_shortlist_actions: boolean;
+  email_parse_complete: boolean;
+  inapp_pipeline_moves: boolean;
+  inapp_shortlist_actions: boolean;
+  inapp_parse_complete: boolean;
+  unsubscribed_all: boolean;
+}
+
+export const notificationsApi = {
+  list: (unread_only = false) =>
+    api.get<AppNotification[]>("/notifications", { params: { unread_only } }).then((r) => r.data),
+
+  unreadCount: () =>
+    api.get<{ count: number }>("/notifications/unread-count").then((r) => r.data.count),
+
+  markRead: (id: string) =>
+    api.post(`/notifications/${id}/read`),
+
+  markAllRead: () =>
+    api.post("/notifications/read-all"),
+
+  getPrefs: () =>
+    api.get<NotificationPrefs>("/notifications/preferences").then((r) => r.data),
+
+  updatePrefs: (data: Partial<NotificationPrefs>) =>
+    api.put<NotificationPrefs>("/notifications/preferences", data).then((r) => r.data),
+};

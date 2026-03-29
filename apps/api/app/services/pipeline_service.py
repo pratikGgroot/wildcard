@@ -189,6 +189,35 @@ class PipelineService:
 
         await self.db.flush()
         await self.db.refresh(placement)
+
+        # Notify assigned users about the stage move
+        try:
+            from app.services.notification_service import notify_pipeline_move
+            from app.models.candidate import Candidate
+            from sqlalchemy import select as sa_select
+            from app.models.job import Job
+            cand_row = await self.db.execute(sa_select(Candidate).where(Candidate.id == candidate_id))
+            cand = cand_row.scalar_one_or_none()
+            job_row = await self.db.execute(sa_select(Job).where(Job.id == job_id))
+            job = job_row.scalar_one_or_none()
+            if cand and job:
+                from app.models.pipeline import PipelineStage as PS
+                from_stage_name = None
+                if old_stage_id:
+                    fs_row = await self.db.execute(sa_select(PS).where(PS.id == old_stage_id))
+                    fs = fs_row.scalar_one_or_none()
+                    from_stage_name = fs.name if fs else None
+                await notify_pipeline_move(
+                    self.db, job_id, candidate_id,
+                    cand.full_name or "Unknown",
+                    job.title,
+                    from_stage_name,
+                    stage.name,
+                )
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Pipeline notification failed: %s", exc)
+
         return placement
 
     async def bulk_move(
