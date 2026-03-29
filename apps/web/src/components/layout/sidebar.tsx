@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Briefcase, Users, BarChart2, Settings, ChevronDown, LayoutTemplate, ExternalLink, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
+import NotificationBell from "@/components/layout/notification-bell";
 
 const NAV = [
   {
@@ -203,11 +204,14 @@ export function Sidebar() {
                 {user?.role ?? ""}
               </div>
             </div>
-            <ChevronDown
-              size={13}
-              color="rgba(255,255,255,0.3)"
-              style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
-            />
+            {/* ChevronDown removed — bell takes that slot */}
+          </div>
+          {/* Notification bell */}
+          <div
+            style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <NotificationBell dark />
           </div>
 
           {menuOpen && (

@@ -40,5 +40,14 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
+    # Email / SMTP (Mailpit in dev)
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 1025
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@hireiq.com"
+    SMTP_FROM_NAME: str = "HireIQ"
+    SMTP_TLS: bool = False
+
 
 settings = Settings()

@@ -74,6 +74,16 @@ apps/web/          — Next.js frontend
 - Files: `app/models/pipeline.py`, `app/services/pipeline_service.py`, `app/api/v1/pipeline.py`, `app/tasks/resume_tasks.py` (auto-placement hook), `app/services/shortlist_service.py` (auto-move on accept/reject), `src/components/jobs/pipeline-panel.tsx`, `src/lib/api.ts` (pipelineApi)
 - **IMPORTANT for Pratik**: Do NOT touch `pipeline_stages`, `candidate_pipeline`, `pipeline_stage_audit` tables or `pipeline_service.py`. The pipeline auto-move on shortlist accept/reject is in `shortlist_service.py` `take_action()` — do not remove it.
 
+### Notifications & Email (Epic 10) — ✅ P0 COMPLETED by Yash
+- In-app notifications: bell icon in sidebar with unread badge, dropdown panel, mark read/all read
+- Email queue: async via Celery, flushes every 60s, sent via SMTP to Mailpit (dev) at http://localhost:8025
+- Notification preferences per user: toggle email/in-app per event type, unsubscribe token
+- Auto-triggers: pipeline stage move → notify assigned users; shortlist accept/reject → notify assigned users
+- DB migration: `alembic/versions/0020_notifications.py` — creates `notifications`, `email_queue`, `notification_preferences`
+- Files: `app/services/email_service.py`, `app/services/notification_service.py`, `app/tasks/notification_tasks.py`, `app/api/v1/notifications.py`, `src/components/layout/notification-bell.tsx`, `src/lib/api.ts` (notificationsApi)
+- API routes: `GET/POST /notifications`, `GET /notifications/unread-count`, `POST /notifications/{id}/read`, `POST /notifications/read-all`, `GET/PUT /notifications/preferences`, `POST /notifications/unsubscribe`
+- P1 remaining: email templates UI (10.1), notification preferences page (10.6)
+
 ### Authentication & RBAC (Epic 12) — ✅ COMPLETED by Yash
 - Email/password login with bcrypt password hashing (passlib)
 - JWT access tokens (15 min) + refresh tokens (7 days) with rotation
@@ -90,7 +100,7 @@ apps/web/          — Next.js frontend
 
 ### Infrastructure
 - Full Docker Compose setup: postgres, redis, minio, mailpit, api, web, worker
-- Alembic migrations (0001–0024)
+- Alembic migrations (0001–0025)
 - Celery worker for background jobs
 - `OLLAMA_BASE_URL: http://host.docker.internal:11434` set on both `api` and `worker` services in `docker-compose.yml` (required for LLM calls from inside Docker)
 
@@ -111,7 +121,10 @@ apps/web/          — Next.js frontend
 - `auth_audit_log` — login/logout/password-change audit trail
 - `pipeline_stages` — per-job Kanban stages (name, order, color, is_terminal)
 - `candidate_pipeline` — candidate's current stage per job (unique per candidate+job)
-- `pipeline_stage_audit` — full history of every stage transition with who moved and when
+- `pipeline_stage_audit` — full history of every stage transitions with who moved and when
+- `notifications` — in-app notifications per user (type, title, body, is_read)
+- `email_queue` — async email queue (to, subject, html_body, status, attempts)
+- `notification_preferences` — per-user email/in-app toggles + unsubscribe token
 - `interview_kits` — generated interview kits per candidate+job (status, gap_analysis, criteria_hash)
 - `interview_questions` — questions per kit (type: technical/behavioral/gap_probe, rubric JSON, display_order)
 - `kit_share_links` — 30-day expiring read-only share tokens for approved kits
@@ -142,13 +155,11 @@ All API routes are prefixed: `/api/v1/`
 - Epic 09: Pipeline/Kanban workflow — fully done by Yash
 
 ## What Is In Progress
-- Epic 11: Reporting & analytics (Pratik — starting next)- Epic 10: Notifications & email (Yash — starting next)
-- Epic 08: Bias detection & explainability (Yash — starting next)
+- Epic 08: Bias detection & explainability (Yash — next)
 
 ## What Is NOT Yet Built
-- Reporting & analytics (Epic 11)
 - Bias detection & explainability (Epic 08)
-- Notifications & email (Epic 10)
+- Notifications & email (Epic 10) — P0 done by Yash, P1 remaining
 - Data privacy & compliance (Epic 13)
 - External integrations — LinkedIn, job boards, Slack (Epic 15)
 - Admin panel (Epic 16)
