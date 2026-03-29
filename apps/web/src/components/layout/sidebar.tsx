@@ -25,7 +25,7 @@ const NAV = [
   {
     label: "System",
     items: [
-      { href: "/settings", icon: Settings, label: "Settings", soon: true },
+      { href: "/admin", icon: Settings, label: "Admin Panel" },
     ],
   },
 ];
