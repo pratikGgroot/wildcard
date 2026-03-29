@@ -7,11 +7,12 @@ import Link from "next/link";
 import {
   ArrowLeft, Mail, Phone, MapPin, Linkedin, FileText,
   Briefcase, GraduationCap, Award, FolderOpen,
-  AlertCircle, StickyNote, Tag, X, Plus, Pencil, Trash2, Clock, Paperclip, Upload,
+  AlertCircle, StickyNote, Tag, X, Plus, Pencil, Trash2, Clock, Paperclip, Upload, ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { candidatesApi, candidateNotesApi, candidateTagsApi, candidateDocumentsApi, fitScoreApi, type DocType } from "@/lib/api";
+import { InterviewKitPanel } from "@/components/jobs/interview-kit-panel";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -508,71 +509,67 @@ function ApplicationHistoryPanel({ candidateId }: { candidateId: string }) {
         return (
           <div key={app.upload_id} style={{ borderRadius: 10, background: "#fff", border: "1px solid #f3f4f6", overflow: "hidden" }}>
             {/* Row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Link href={`/jobs/${app.job_id}`} style={{ fontSize: 13, fontWeight: 600, color: "#111827", textDecoration: "none" }}>
                   {app.job_title}
                 </Link>
                 <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
                   Applied {timeAgo(app.uploaded_at)}
-                  {app.completed_at ? ` · parsed ${timeAgo(app.completed_at)}` : ""}
                 </p>
               </div>
 
               {/* Fit score badge */}
               {fitScore !== undefined && (
-                <div
-                  title={isOverridden ? `AI score: ${scoreRec.original_ai_score?.toFixed(0)} · Manually adjusted` : undefined}
-                  style={{
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    background: fitScore >= 70 ? "#ecfdf5" : fitScore >= 40 ? "#fffbeb" : "#fef2f2",
-                    borderRadius: 8, padding: "4px 10px", minWidth: 48, flexShrink: 0,
-                    outline: isOverridden ? "2px solid #d97706" : "none",
-                    position: "relative",
-                  }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: fitScore >= 70 ? "#059669" : fitScore >= 40 ? "#d97706" : "#dc2626", lineHeight: 1 }}>
+                <div style={{
+                  background: fitScore >= 70 ? "#ecfdf5" : fitScore >= 40 ? "#fffbeb" : "#fef2f2",
+                  borderRadius: 8, padding: "4px 10px", minWidth: 44, textAlign: "center", flexShrink: 0,
+                  outline: isOverridden ? "2px solid #d97706" : "none",
+                }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: fitScore >= 70 ? "#059669" : fitScore >= 40 ? "#d97706" : "#dc2626", lineHeight: 1, display: "block" }}>
                     {fitScore.toFixed(0)}
                   </span>
-                  <span style={{ fontSize: 9, color: fitScore >= 70 ? "#059669" : fitScore >= 40 ? "#d97706" : "#dc2626", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.04em" }}>
+                  <span style={{ fontSize: 9, color: fitScore >= 70 ? "#059669" : fitScore >= 40 ? "#d97706" : "#dc2626", fontWeight: 600, textTransform: "uppercase" as const }}>
                     {isOverridden ? "adj" : "fit"}
                   </span>
                 </div>
               )}
 
-              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: js.bg, color: js.color, flexShrink: 0 }}>
-                {app.job_status}
-              </span>
               <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: us.bg, color: us.color, flexShrink: 0 }}>
                 {us.label}
               </span>
 
-              {fitScore !== undefined && (
-                <>
+              {/* Action buttons — compact */}
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                {fitScore !== undefined && (
                   <button
                     onClick={() => setExpandedJob(isExpanded ? null : app.job_id)}
-                    style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer", flexShrink: 0 }}
+                    style={{ background: isExpanded ? "#eef2ff" : "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}
+                    title="Score breakdown"
                   >
-                    {isExpanded ? "▲" : "▼"} Why?
+                    {isExpanded ? "▲" : "▼"}
                   </button>
-                  {isOverridden ? (
-                    <button
-                      onClick={() => resetMutation.mutate(app.job_id)}
-                      disabled={resetMutation.isPending}
-                      title={`Justification: ${scoreRec.override_justification}`}
-                      style={{ background: "none", border: "1px solid #fed7aa", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#d97706", cursor: "pointer", flexShrink: 0 }}
-                    >
-                      Reset
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { setOverrideJob(app.job_id); setOverrideScore(fitScore.toFixed(0)); }}
-                      style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer", flexShrink: 0 }}
-                    >
-                      Override
-                    </button>
-                  )}
-                </>
-              )}
+                )}
+                {fitScore !== undefined && !isOverridden && (
+                  <button
+                    onClick={() => { setOverrideJob(app.job_id); setOverrideScore(fitScore.toFixed(0)); }}
+                    style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer" }}
+                    title="Override score"
+                  >
+                    ✎
+                  </button>
+                )}
+                {fitScore !== undefined && isOverridden && (
+                  <button
+                    onClick={() => resetMutation.mutate(app.job_id)}
+                    disabled={resetMutation.isPending}
+                    title={`Reset — Justification: ${scoreRec.override_justification}`}
+                    style={{ background: "none", border: "1px solid #fed7aa", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#d97706", cursor: "pointer" }}
+                  >
+                    ↺
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Override input */}
@@ -835,12 +832,62 @@ function FitBreakdownPanel({ candidateId, jobId }: { candidateId: string; jobId:
   );
 }
 
+// ── Interview Kit section ─────────────────────────────────────────────────────
+
+function InterviewKitSection({ candidateId }: { candidateId: string }) {
+  const { data: applications = [], isLoading } = useQuery({
+    queryKey: ["candidate-applications", candidateId],
+    queryFn: () => candidatesApi.getApplications(candidateId),
+  });
+
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+  const jobId = selectedJobId ?? applications[0]?.job_id ?? null;
+
+  if (isLoading) return <p style={{ fontSize: 13, color: "#9ca3af" }}>Loading…</p>;
+
+  if (!applications.length) return (
+    <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "16px 0" }}>
+      No applications found — interview kit unavailable
+    </p>
+  );
+
+  return (
+    <div style={{ background: "#0f172a", borderRadius: 12, padding: "16px 14px" }}>
+      {applications.length > 1 && (
+        <div style={{ marginBottom: 12 }}>
+          <select
+            value={jobId ?? ""}
+            onChange={(e) => setSelectedJobId(e.target.value)}
+            style={{ padding: "6px 10px", fontSize: 12, border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, outline: "none", background: "#1e293b", color: "#fff", width: "100%" }}
+          >
+            {applications.map((a: any) => (
+              <option key={a.job_id} value={a.job_id}>{a.job_title}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {jobId && <InterviewKitPanel candidateId={candidateId} jobId={jobId} />}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CandidateProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [resumeLoading, setResumeLoading] = useState(false);
+  const [showKit, setShowKit] = useState(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => candidatesApi.delete(id),
+    onSuccess: () => {
+      toast.success("Candidate deleted");
+      router.back();
+    },
+    onError: () => toast.error("Failed to delete candidate"),
+  });
 
   const { data: candidate, isLoading, error } = useQuery({
     queryKey: ["candidate-profile", id],
@@ -952,6 +999,23 @@ export default function CandidateProfilePage() {
             >
               <FileText size={13} /> {resumeLoading ? "Loading…" : "View Resume"}
             </button>
+            <button
+              onClick={() => setShowKit(v => !v)}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, background: showKit ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #e0e7ff", borderRadius: 8, cursor: "pointer" }}
+            >
+              <ClipboardList size={13} /> Interview Kit
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Delete ${candidate.full_name ?? "this candidate"}? This cannot be undone.`)) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, background: "#fff", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, cursor: "pointer" }}
+            >
+              <Trash2 size={13} /> {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            </button>
           </div>
         </div>
         {candidate.parsing_errors && candidate.parsing_errors.length > 0 && (
@@ -961,6 +1025,14 @@ export default function CandidateProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Interview Kit panel — toggled from header */}
+      {showKit && (
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e0e7ff", padding: 20, marginBottom: 16 }}>
+          <SectionHeader icon={ClipboardList} title="Interview Kit" />
+          <InterviewKitSection candidateId={id} />
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
         {/* Left column */}
@@ -1044,16 +1116,16 @@ export default function CandidateProfilePage() {
             <DocumentsPanel candidateId={id} />
           </div>
 
-          {/* Application History */}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: 20 }}>
-            <SectionHeader icon={Clock} title="Application History" />
-            <ApplicationHistoryPanel candidateId={id} />
-          </div>
-
           {/* Notes */}
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: 20 }}>
             <SectionHeader icon={StickyNote} title="Notes" />
             <NotesPanel candidateId={id} />
+          </div>
+
+          {/* Application History */}
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", padding: 20 }}>
+            <SectionHeader icon={Clock} title="Application History" />
+            <ApplicationHistoryPanel candidateId={id} />
           </div>
 
         </div>

@@ -24,7 +24,6 @@ from app.services.skill_normalizer import SkillNormalizerService
 from app.services.duplicate_service import DuplicateDetectionService
 from app.services.embedding_service import SyncEmbeddingService
 from app.services.fit_score_service import SyncFitScoreService
-from app.services.pipeline_service import PipelineService
 
 logger = logging.getLogger(__name__)
 
@@ -283,23 +282,51 @@ def parse_resume(self, upload_id: str) -> dict:
 
             # ── Step 10: Add candidate to pipeline (Epic 09) ──────────────────
             try:
-                import asyncio as _asyncio
+                from sqlalchemy import text as _text
+                # Get the first (lowest order) stage for this job
+                stage_row = db.execute(
+                    _text("""
+                        SELECT id FROM pipeline_stages
+                        WHERE job_id = :jid
+                        ORDER BY "order" ASC LIMIT 1
+                    """),
+                    {"jid": str(upload.job_id)},
+                ).fetchone()
 
-                async def _add_to_pipeline():
-                    from app.db.base import AsyncSessionLocal
-                    async with AsyncSessionLocal() as async_db:
-                        svc = PipelineService(async_db)
-                        # Place in Applied first (idempotent), then move to Screening
-                        await svc.add_candidate_to_pipeline(upload.job_id, candidate.id)
-                        # Now move to Screening (2nd stage)
-                        stages = await svc.get_stages(upload.job_id)
-                        screening = next((s for s in stages if s.name.lower() == "screening"), None)
-                        if screening:
-                            await svc.move_candidate(upload.job_id, candidate.id, screening.id, None, "Auto-moved after resume parsed")
-                        await async_db.commit()
+                if not stage_row:
+                    # No stages yet — create defaults inline
+                    from app.models.pipeline import DEFAULT_STAGES
+                    import uuid as _uuid
+                    first_stage_id = None
+                    for i, s in enumerate(DEFAULT_STAGES):
+                        sid = _uuid.uuid4()
+                        db.execute(
+                            _text("""
+                                INSERT INTO pipeline_stages (id, job_id, name, "order", color, is_terminal)
+                                VALUES (:id, :jid, :name, :ord, :color, :terminal)
+                                ON CONFLICT DO NOTHING
+                            """),
+                            {"id": str(sid), "jid": str(upload.job_id), "name": s["name"],
+                             "ord": s["order"], "color": s.get("color"), "terminal": s.get("is_terminal", False)},
+                        )
+                        if i == 0:
+                            first_stage_id = str(sid)
+                    db.flush()
+                else:
+                    first_stage_id = str(stage_row[0])
 
-                _asyncio.run(_add_to_pipeline())
-                logger.info("Added candidate %s to pipeline (Screening) for job %s", candidate.id, upload.job_id)
+                if first_stage_id:
+                    db.execute(
+                        _text("""
+                            INSERT INTO candidate_pipeline (id, candidate_id, job_id, stage_id, moved_at)
+                            VALUES (gen_random_uuid(), :cid, :jid, :sid, now())
+                            ON CONFLICT (candidate_id, job_id) DO UPDATE
+                            SET stage_id = EXCLUDED.stage_id, moved_at = now()
+                        """),
+                        {"cid": str(candidate.id), "jid": str(upload.job_id), "sid": first_stage_id},
+                    )
+                    db.commit()
+                    logger.info("Added candidate %s to pipeline stage %s for job %s", candidate.id, first_stage_id, upload.job_id)
             except Exception as exc:
                 logger.error("Pipeline placement failed for %s: %s", upload_id, exc)
 

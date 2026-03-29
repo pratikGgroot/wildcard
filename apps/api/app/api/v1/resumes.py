@@ -88,3 +88,34 @@ async def reparse_upload(
 ):
     """Re-trigger parsing for a completed or failed upload (e.g. if LLM was unavailable)."""
     return await service.reparse(job_id, upload_id)
+
+
+@router.delete("/{upload_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_upload(
+    job_id: uuid.UUID,
+    upload_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a resume upload record (and its candidate if linked)."""
+    from sqlalchemy import select, delete as _delete
+    from app.models.candidate import ResumeUpload, Candidate
+
+    row = await db.execute(
+        select(ResumeUpload).where(ResumeUpload.id == upload_id, ResumeUpload.job_id == job_id)
+    )
+    upload = row.scalar_one_or_none()
+    if not upload:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Upload not found")
+
+    # Delete linked candidate if exists
+    if upload.candidate_id:
+        await db.execute(_delete(ResumeUpload).where(ResumeUpload.candidate_id == upload.candidate_id))
+        cand = await db.execute(select(Candidate).where(Candidate.id == upload.candidate_id))
+        c = cand.scalar_one_or_none()
+        if c:
+            await db.delete(c)
+    else:
+        await db.delete(upload)
+
+    await db.commit()

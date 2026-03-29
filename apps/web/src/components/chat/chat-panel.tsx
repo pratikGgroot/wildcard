@@ -151,6 +151,8 @@ const SUGGESTIONS = [
   { icon: "📅", text: "Who applied in the last 7 days?" },
   { icon: "⭐", text: "Candidates with score above 70" },
   { icon: "💼", text: "List all active jobs" },
+  { icon: "⚖️", text: "Compare top 3 candidates" },
+  { icon: "➡️", text: "Move John to Interview stage" },
 ];
 
 // ── Tool indicator ────────────────────────────────────────────────────────────
@@ -162,6 +164,8 @@ function ToolBadge({ tool }: { tool: string }) {
     get_pipeline_summary: "Fetching summary",
     list_jobs: "Listing jobs",
     get_job_details: "Fetching job details",
+    compare_candidates: "Comparing candidates",
+    move_candidate: "Preparing move action",
   };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.25)", marginBottom: 6, width: "fit-content" }}>
@@ -565,6 +569,38 @@ export function ChatPanel() {
                         </div>
                       </div>
                     ))}
+
+                    {/* Confirmation quick-reply buttons (06.6) */}
+                    {!loading && messages.length > 0 && (() => {
+                      const last = messages[messages.length - 1];
+                      if (last?.role === "assistant" && last.content.includes("Confirm? (yes / no)")) {
+                        return (
+                          <div style={{ display: "flex", gap: 8, paddingLeft: 34 }}>
+                            <button
+                              onClick={() => sendMessage("yes")}
+                              style={{
+                                padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.4)",
+                                background: "rgba(16,185,129,0.12)", color: "#6ee7b7",
+                                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              }}
+                            >
+                              ✓ Confirm
+                            </button>
+                            <button
+                              onClick={() => sendMessage("no")}
+                              style={{
+                                padding: "6px 16px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.4)",
+                                background: "rgba(239,68,68,0.1)", color: "#fca5a5",
+                                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                              }}
+                            >
+                              ✕ Cancel
+                            </button>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
 
                     {/* Active tool indicator */}
                     {activeTool && (

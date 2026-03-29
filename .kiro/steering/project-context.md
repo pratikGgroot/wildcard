@@ -90,7 +90,7 @@ apps/web/          — Next.js frontend
 
 ### Infrastructure
 - Full Docker Compose setup: postgres, redis, minio, mailpit, api, web, worker
-- Alembic migrations (0001–0019)
+- Alembic migrations (0001–0024)
 - Celery worker for background jobs
 - `OLLAMA_BASE_URL: http://host.docker.internal:11434` set on both `api` and `worker` services in `docker-compose.yml` (required for LLM calls from inside Docker)
 
@@ -112,6 +112,11 @@ apps/web/          — Next.js frontend
 - `pipeline_stages` — per-job Kanban stages (name, order, color, is_terminal)
 - `candidate_pipeline` — candidate's current stage per job (unique per candidate+job)
 - `pipeline_stage_audit` — full history of every stage transition with who moved and when
+- `interview_kits` — generated interview kits per candidate+job (status, gap_analysis, criteria_hash)
+- `interview_questions` — questions per kit (type: technical/behavioral/gap_probe, rubric JSON, display_order)
+- `kit_share_links` — 30-day expiring read-only share tokens for approved kits
+- `conversation_sessions` — chat session records
+- `conversation_messages` — chat message history per session
 
 ## API Base URL
 All API routes are prefixed: `/api/v1/`
@@ -130,20 +135,20 @@ All API routes are prefixed: `/api/v1/`
 
 ## What Is Completed
 - Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
-- Epic 06: Recruiter chat assistant — P0 stories done (06.1 chat UI, 06.2 intent routing, 06.3 semantic search, 06.4 pipeline filter, 06.7 conversation context, 06.8 response generation with links). P1 deferred: 06.5 candidate comparison, 06.6 action execution (blocked on Epic 09)
+- Epic 06: Recruiter chat assistant — all P0 + P1 stories done (06.1 chat UI, 06.2 intent routing, 06.3 semantic search, 06.4 pipeline filter, 06.5 candidate comparison, 06.6 action execution/move candidate with confirmation, 06.7 conversation context, 06.8 response generation with links). Chat assistant uses hybrid approach: rule-based intent routing bypasses LLM for data queries (zero hallucination), LLM used only for open-ended conversational fallback.
+- Epic 07: Interview kit generation — fully done (07.1 skill gap analysis, 07.2 technical questions, 07.3 behavioral questions, 07.4 gap-probe questions, 07.5 scoring rubric with LLM generation + per-question display, 07.6 kit review UI with approve/edit/delete/add questions, 07.7 PDF export via print page + share links with 30-day expiry)
 - Epic 12: Authentication & RBAC — fully done (login, JWT, refresh rotation, RBAC deps, frontend auth flow, seed users)
 - Epic 09: Pipeline/Kanban workflow — fully done by Yash
 
 ## What Is In Progress
-- Epic 07: Interview kit generation (Pratik — starting next)
+- Epic 11: Reporting & analytics (Pratik — starting next)
 - Epic 10: Notifications & email (Yash — starting next)
 - Epic 08: Bias detection & explainability (Yash — starting next)
 
 ## What Is NOT Yet Built
-- Interview kit generation (Epic 07)
+- Reporting & analytics (Epic 11)
 - Bias detection & explainability (Epic 08)
 - Notifications & email (Epic 10)
-- Reporting & analytics (Epic 11)
 - Data privacy & compliance (Epic 13)
 - External integrations — LinkedIn, job boards, Slack (Epic 15)
 - Admin panel (Epic 16)
@@ -160,16 +165,23 @@ Owns: Epic 05, Epic 06, Epic 07, Epic 11
 **Must Have (P0) — do first:**
 - Epic 05: Shortlist generation (05.1, 05.2, 05.3) — ✅ done
 - Epic 06: Chat assistant UI, intent routing, semantic search, pipeline filter, conversation context, response generation (06.1, 06.2, 06.3, 06.4, 06.7, 06.8) — ✅ done
-- Epic 07: Skill gap analysis, technical/behavioral/gap-probe question generation, kit review UI (07.1, 07.2, 07.3, 07.4, 07.6) — in progress
-- Epic 11: Overview dashboard, time-in-stage, scoring distribution, bias analytics, CSV/PDF export (11.1, 11.2, 11.3, 11.5, 11.7)
+- Epic 07: Skill gap analysis, technical/behavioral/gap-probe question generation, kit review UI (07.1, 07.2, 07.3, 07.4, 07.6) — ✅ done
+- Epic 11: Overview dashboard, time-in-stage, scoring distribution, bias analytics, CSV/PDF export (11.1, 11.2, 11.3, 11.5, 11.7) — **next up**
 
 **Should Have (P1) — do after P0:**
-- Epic 05: Feedback loop, near-miss candidates (05.4, 05.5)
-- Epic 06: Candidate comparison, action execution (06.5, 06.6)
-- Epic 07: Scoring rubric, PDF export (07.5, 07.7)
+- Epic 05: Feedback loop, near-miss candidates (05.4, 05.5) — ✅ done
+- Epic 06: Candidate comparison, action execution (06.5, 06.6) — ✅ done
+- Epic 07: Scoring rubric, PDF export (07.5, 07.7) — ✅ done
 - Epic 11: Source-of-hire tracking, recruiter activity report (11.4, 11.6)
 
 **Do NOT touch:** Auth models, pipeline/stage models, notification models (Yash's territory)
+
+### Interview Kit — Key Files (Epic 07) — ✅ COMPLETED by Pratik
+- DB migrations: `alembic/versions/0023_interview_kits.py` (tables), `alembic/versions/0024_interview_kit_rubrics_sharing.py` (rubric column + share links)
+- Backend: `app/api/v1/interview_kits.py`, `app/services/interview_kit_service.py`
+- Frontend: `src/components/jobs/interview-kit-panel.tsx`, `src/app/interview-kits/print/[kitId]/page.tsx`, `src/app/interview-kits/shared/[token]/page.tsx`
+- Tables: `interview_kits`, `interview_questions` (with `rubric` JSON column), `kit_share_links`
+- **IMPORTANT for Yash**: Do NOT touch interview kit models, `interview_kit_service.py`, or the `interview_kits`/`interview_questions`/`kit_share_links` tables.
 
 ---
 
