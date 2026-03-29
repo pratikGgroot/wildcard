@@ -875,3 +875,81 @@ export const pipelineApi = {
       params: candidate_id ? { candidate_id } : {},
     }).then((r) => r.data),
 };
+
+// ── Chat assistant types (Epic 06) ────────────────────────────────────────────
+
+export interface ChatSession {
+  id: string;
+  title: string | null;
+  session_start: string;
+  last_active: string;
+  is_expired: boolean;
+}
+
+export interface ChatSessionDetail extends ChatSession {
+  messages: { role: string; content: string }[];
+}
+
+export interface ChatSSEEvent {
+  type: "session" | "notice" | "token" | "replace" | "tool_call" | "tool_result" | "done" | "error";
+  content?: string;
+  session_id?: string;
+  tool?: string;
+  args?: Record<string, unknown>;
+  result?: string;
+}
+
+export const chatApi = {
+  listSessions: () =>
+    api.get<ChatSession[]>("/chat/sessions").then((r) => r.data),
+
+  getSession: (sessionId: string) =>
+    api.get<ChatSessionDetail>(`/chat/sessions/${sessionId}`).then((r) => r.data),
+
+  deleteSession: (sessionId: string) =>
+    api.delete(`/chat/sessions/${sessionId}`),
+
+  sendMessage: (message: string, sessionId?: string): EventSource | null => null,
+};
+
+export async function streamChatMessage(
+  message: string,
+  sessionId: string | undefined,
+  onEvent: (event: ChatSSEEvent) => void,
+  onDone: () => void,
+  signal?: AbortSignal
+): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const resp = await fetch(`${baseUrl}/chat/message`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, session_id: sessionId ?? null }),
+    signal,
+  });
+
+  if (!resp.ok || !resp.body) {
+    throw new Error(`Chat request failed: ${resp.status}`);
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const event: ChatSSEEvent = JSON.parse(line.slice(6));
+          onEvent(event);
+          if (event.type === "done") { onDone(); return; }
+        } catch { /* ignore */ }
+      }
+    }
+  }
+  onDone();
+}
