@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Users, BarChart2, Settings, Sparkles, ChevronDown, LayoutTemplate, ExternalLink, LogOut } from "lucide-react";
+import { Briefcase, Users, BarChart2, Settings, ChevronDown, LayoutTemplate, ExternalLink, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 
@@ -60,15 +60,21 @@ export function Sidebar() {
       }}>
         <div style={{
           width: 34, height: 34,
-          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+          background: "linear-gradient(135deg, #111827, #1f2937)",
           borderRadius: 10,
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 0 1px rgba(99,102,241,0.4), 0 4px 12px rgba(99,102,241,0.3)",
+          boxShadow: "0 0 0 1px rgba(234,179,8,0.4), 0 4px 12px rgba(0,0,0,0.4)",
+          border: "1px solid rgba(234,179,8,0.25)",
         }}>
-          <Sparkles size={16} color="#fff" />
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 4 L28 28 H22 L19 21 H13 L10 28 H4 L16 4Z" fill="#eab308" />
+            <rect x="11.5" y="18" width="9" height="2.5" rx="1.25" fill="#111827" />
+          </svg>
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.2, letterSpacing: "-0.01em" }}>HireIQ</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+            <span style={{ color: "#eab308" }}>Apex</span> Hire
+          </div>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", lineHeight: 1.3, letterSpacing: "0.02em" }}>Intelligence Platform</div>
         </div>
       </div>

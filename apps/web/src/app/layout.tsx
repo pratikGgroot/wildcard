@@ -8,7 +8,7 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "HireIQ – Hiring Intelligence Platform",
+  title: "Apex Hire – Hiring Intelligence Platform",
   description: "AI-Driven Hiring Intelligence Platform",
 };
 

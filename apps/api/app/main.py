@@ -11,6 +11,7 @@ from app.api.v1.duplicates import router as duplicates_router, jobs_router as du
 from app.api.v1.candidates import router as candidates_router
 from app.api.v1.shortlist import router as shortlist_router
 from app.api.v1.pipeline import router as pipeline_router
+from app.api.v1.chat import router as chat_router
 from app.core.config import settings
 from app.services.llm_service import LLMService
 
@@ -41,6 +42,7 @@ app.include_router(duplicate_jobs_router, prefix="/api/v1")
 app.include_router(candidates_router, prefix="/api/v1")
 app.include_router(shortlist_router, prefix="/api/v1")
 app.include_router(pipeline_router, prefix="/api/v1")
+app.include_router(chat_router, prefix="/api/v1")
 
 
 @app.get("/health")

@@ -130,16 +130,16 @@ All API routes are prefixed: `/api/v1/`
 
 ## What Is Completed
 - Epic 05: AI Shortlisting — all 5 stories done (05.1 shortlist generation, 05.2 LLM reasoning, 05.3 accept/reject/hold, 05.4 feedback loop & weight optimization, 05.5 near-miss candidates)
+- Epic 06: Recruiter chat assistant — P0 stories done (06.1 chat UI, 06.2 intent routing, 06.3 semantic search, 06.4 pipeline filter, 06.7 conversation context, 06.8 response generation with links). P1 deferred: 06.5 candidate comparison, 06.6 action execution (blocked on Epic 09)
 - Epic 12: Authentication & RBAC — fully done (login, JWT, refresh rotation, RBAC deps, frontend auth flow, seed users)
-- Epic 09: Pipeline/Kanban workflow — fully done by Yash (see details below)
+- Epic 09: Pipeline/Kanban workflow — fully done by Yash
 
 ## What Is In Progress
+- Epic 07: Interview kit generation (Pratik — starting next)
 - Epic 10: Notifications & email (Yash — starting next)
 - Epic 08: Bias detection & explainability (Yash — starting next)
-- Epic 06: Recruiter chat assistant (Pratik — starting next)
 
 ## What Is NOT Yet Built
-- Recruiter chat assistant (Epic 06)
 - Interview kit generation (Epic 07)
 - Bias detection & explainability (Epic 08)
 - Notifications & email (Epic 10)
@@ -158,9 +158,9 @@ All API routes are prefixed: `/api/v1/`
 Owns: Epic 05, Epic 06, Epic 07, Epic 11
 
 **Must Have (P0) — do first:**
-- Epic 05: Shortlist generation (05.1, 05.2, 05.3) — in progress
-- Epic 06: Chat assistant UI, intent routing, semantic search, pipeline filter, conversation context, response generation (06.1, 06.2, 06.3, 06.4, 06.7, 06.8)
-- Epic 07: Skill gap analysis, technical/behavioral/gap-probe question generation, kit review UI (07.1, 07.2, 07.3, 07.4, 07.6)
+- Epic 05: Shortlist generation (05.1, 05.2, 05.3) — ✅ done
+- Epic 06: Chat assistant UI, intent routing, semantic search, pipeline filter, conversation context, response generation (06.1, 06.2, 06.3, 06.4, 06.7, 06.8) — ✅ done
+- Epic 07: Skill gap analysis, technical/behavioral/gap-probe question generation, kit review UI (07.1, 07.2, 07.3, 07.4, 07.6) — in progress
 - Epic 11: Overview dashboard, time-in-stage, scoring distribution, bias analytics, CSV/PDF export (11.1, 11.2, 11.3, 11.5, 11.7)
 
 **Should Have (P1) — do after P0:**

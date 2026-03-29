@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -37,13 +36,20 @@ export default function LoginPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
           <div style={{
             width: 38, height: 38,
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            background: "linear-gradient(135deg, #111827, #1f2937)",
             borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
+            border: "1px solid rgba(234,179,8,0.3)",
+            boxShadow: "0 0 0 2px rgba(234,179,8,0.1)",
           }}>
-            <Sparkles size={18} color="#fff" />
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 4 L28 28 H22 L19 21 H13 L10 28 H4 L16 4Z" fill="#eab308" />
+              <rect x="11.5" y="18" width="9" height="2.5" rx="1.25" fill="#111827" />
+            </svg>
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>HireIQ</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
+              <span style={{ color: "#eab308" }}>Apex</span> Hire
+            </div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Intelligence Platform</div>
           </div>
         </div>
@@ -107,8 +113,9 @@ export default function LoginPage() {
             disabled={loading}
             style={{
               width: "100%", padding: "11px", borderRadius: 8, border: "none",
-              background: loading ? "rgba(99,102,241,0.5)" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              background: loading ? "rgba(234,179,8,0.4)" : "linear-gradient(135deg, #1f2937, #111827)",
               color: "#fff", fontSize: 14, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
+              border: "1px solid rgba(234,179,8,0.3)",
             }}
           >
             {loading ? "Signing in…" : "Sign in"}
