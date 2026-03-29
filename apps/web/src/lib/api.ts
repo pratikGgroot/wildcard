@@ -344,6 +344,9 @@ export const resumesApi = {
 
   reParse: (jobId: string, uploadId: string) =>
     api.post<ResumeUpload>(`/jobs/${jobId}/resumes/${uploadId}/reparse`).then((r) => r.data),
+
+  deleteUpload: (jobId: string, uploadId: string) =>
+    api.delete(`/jobs/${jobId}/resumes/${uploadId}`),
 };
 
 // ── Parsing error types (Story 02.7) ─────────────────────────────────────────
@@ -446,6 +449,9 @@ export const candidatesApi = {
 
   getApplications: (candidateId: string) =>
     api.get<ApplicationHistory[]>(`/candidates/${candidateId}/applications`).then((r) => r.data),
+
+  delete: (candidateId: string) =>
+    api.delete(`/candidates/${candidateId}`),
 };
 
 // ── Candidate notes & tags (Story 03.2) ───────────────────────────────────────
@@ -891,12 +897,14 @@ export interface ChatSessionDetail extends ChatSession {
 }
 
 export interface ChatSSEEvent {
-  type: "session" | "notice" | "token" | "replace" | "tool_call" | "tool_result" | "done" | "error";
+  type: "session" | "notice" | "token" | "replace" | "tool_call" | "tool_result" | "action_result" | "done" | "error";
   content?: string;
   session_id?: string;
   tool?: string;
   args?: Record<string, unknown>;
   result?: string;
+  action?: string;
+  success?: boolean;
 }
 
 export const chatApi = {
@@ -953,3 +961,114 @@ export async function streamChatMessage(
   }
   onDone();
 }
+
+// ── Interview Kit types & API (Epic 07) ───────────────────────────────────────
+
+export interface SkillGap {
+  skill: string;
+  criticality: "critical" | "important" | "minor";
+  is_complete_gap: boolean;
+  weight: string;
+}
+
+export interface GapAnalysis {
+  matched_skills: string[];
+  partial_skills: string[];
+  gaps: SkillGap[];
+  has_critical_gaps: boolean;
+  gap_count: number;
+}
+
+export interface InterviewQuestion {
+  id: string;
+  question_text: string;
+  question_type: "technical" | "behavioral" | "gap_probe";
+  competency_area: string | null;
+  difficulty: "Easy" | "Medium" | "Hard" | null;
+  suggested_answer: string | null;
+  green_flags: string[];
+  red_flags: string[];
+  gap_skill: string | null;
+  gap_criticality: string | null;
+  display_order: number;
+  is_edited: boolean;
+  rubric: ScoringRubric | null;
+}
+
+export interface ScoringRubricLevel {
+  score: 1 | 2 | 3 | 4;
+  label: string;
+  description: string;
+}
+
+export interface ScoringRubric {
+  scale: ScoringRubricLevel[];
+  green_flags: string[];
+  red_flags: string[];
+}
+
+export interface KitShareLink {
+  token: string;
+  expires_at: string;
+  is_revoked: boolean;
+  accessed_count: number;
+  created_at: string;
+}
+
+export interface InterviewKit {
+  kit_id: string;
+  candidate_id: string;
+  job_id: string;
+  status: "generated" | "approved" | "outdated";
+  gap_analysis: GapAnalysis | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  questions: InterviewQuestion[];
+  question_counts: { technical: number; behavioral: number; gap_probe: number };
+}
+
+export const interviewKitApi = {
+  generate: (candidateId: string, jobId: string) =>
+    api.post<InterviewKit>(`/candidates/${candidateId}/jobs/${jobId}/interview-kit/generate`).then((r) => r.data),
+
+  get: (candidateId: string, jobId: string) =>
+    api.get<InterviewKit>(`/candidates/${candidateId}/jobs/${jobId}/interview-kit`).then((r) => r.data),
+
+  updateQuestion: (kitId: string, questionId: string, data: Partial<Pick<InterviewQuestion, "question_text" | "competency_area" | "difficulty" | "suggested_answer">>) =>
+    api.put<InterviewQuestion>(`/interview-kits/${kitId}/questions/${questionId}`, data).then((r) => r.data),
+
+  addQuestion: (kitId: string, data: { question_text: string; question_type?: string; competency_area?: string; difficulty?: string }) =>
+    api.post<InterviewQuestion>(`/interview-kits/${kitId}/questions`, data).then((r) => r.data),
+
+  deleteQuestion: (kitId: string, questionId: string) =>
+    api.delete(`/interview-kits/${kitId}/questions/${questionId}`),
+
+  reorderQuestions: (kitId: string, question_ids: string[]) =>
+    api.patch(`/interview-kits/${kitId}/questions/reorder`, { question_ids }).then((r) => r.data),
+
+  approve: (kitId: string) =>
+    api.post<InterviewKit>(`/interview-kits/${kitId}/approve`).then((r) => r.data),
+
+  // 07.7 — Share links
+  createShareLink: (kitId: string) =>
+    api.post<KitShareLink & { kit_id: string }>(`/interview-kits/${kitId}/share-link`).then((r) => r.data),
+
+  listShareLinks: (kitId: string) =>
+    api.get<KitShareLink[]>(`/interview-kits/${kitId}/share-links`).then((r) => r.data),
+
+  revokeShareLink: (kitId: string) =>
+    api.delete(`/interview-kits/${kitId}/share-link`),
+
+  getSharedKit: (token: string) =>
+    api.get<InterviewKit>(`/interview-kits/shared/${token}`).then((r) => r.data),
+
+  // 07.5 — Rubric
+  generateRubric: (kitId: string, questionId: string) =>
+    api.post<{ question_id: string; rubric: ScoringRubric }>(`/interview-kits/${kitId}/questions/${questionId}/rubric/generate`).then((r) => r.data),
+
+  // Print page — get kit by ID directly
+  getKitById: (kitId: string) =>
+    api.get<InterviewKit>(`/interview-kits/${kitId}`).then((r) => r.data),
+};

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { shortlistApi, type Shortlist, type ShortlistCandidate, type NearMissCandidate, type FeedbackStats } from "@/lib/api";
 import Link from "next/link";
+import { InterviewKitPanel } from "@/components/jobs/interview-kit-panel";
 
 interface Props {
   jobId: string;
@@ -408,6 +409,7 @@ export default function ShortlistPanel({ jobId }: Props) {
 
 function CandidateCard({
   candidate: c,
+  jobId,
   selected,
   onSelect,
   onAction,
@@ -415,6 +417,7 @@ function CandidateCard({
   readonly = false,
 }: {
   candidate: ShortlistCandidate;
+  jobId: string;
   selected: boolean;
   onSelect: () => void;
   onAction: (action: "accepted" | "rejected" | "deferred", reason?: string) => void;
@@ -423,6 +426,7 @@ function CandidateCard({
 }) {
   const conf = CONFIDENCE_STYLE[c.confidence_level] ?? CONFIDENCE_STYLE.Low;
   const act = c.action ? ACTION_STYLE[c.action] : null;
+  const [showKit, setShowKit] = useState(false);
 
   return (
     <div style={{

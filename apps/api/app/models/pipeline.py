@@ -58,7 +58,6 @@ class CandidatePipeline(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )
     moved_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     stage: Mapped["PipelineStage | None"] = relationship(
         "PipelineStage", back_populates="placements", foreign_keys=[stage_id]

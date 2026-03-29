@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Clock, MapPin, Building2, Briefcase, Calendar, Users, ChevronRight, Sparkles, Pencil, BookmarkPlus, UserCheck, ExternalLink, AlertTriangle, Copy } from "lucide-react";
 import Link from "next/link";
 
-import { jobsApi, criteriaApi, resumesApi, duplicatesApi, fitScoreApi, type JobStatus } from "@/lib/api";
+import { jobsApi, criteriaApi, resumesApi, duplicatesApi, fitScoreApi, candidatesApi, type JobStatus } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
 import { AssignmentManager } from "@/components/jobs/assignment-manager";
 import { ActivateJobModal } from "@/components/jobs/activate-job-modal";
@@ -64,7 +64,7 @@ export default function JobDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
-  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "pipeline" | "team" | "history" | "errors" | "duplicates">("description");
+  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "pipeline" | "team" | "history" | "errors" | "duplicates" | "interview-kits">("description");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -377,6 +377,16 @@ function CandidatesPanel({ jobId, rankings }: { jobId: string; rankings: import(
     onError: () => toast.error("Failed to queue re-parse"),
   });
 
+  const deleteCandidateMutation = useMutation({
+    mutationFn: (uploadId: string) => resumesApi.deleteUpload(jobId, uploadId),
+    onSuccess: () => {
+      toast.success("Candidate deleted");
+      queryClient.invalidateQueries({ queryKey: ["resume-bulk-status", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["fit-rankings", jobId] });
+    },
+    onError: () => toast.error("Failed to delete candidate"),
+  });
+
   const scoreAllMutation = useMutation({
     mutationFn: () => fitScoreApi.scoreAll(jobId),
     onSuccess: (res) => {
@@ -559,16 +569,6 @@ function CandidatesPanel({ jobId, rankings }: { jobId: string; rankings: import(
               }}>
                 {u.status === "completed" ? "Parsed" : u.status === "failed" ? "Failed" : "Processing"}
               </span>
-              {(u.status === "completed" || u.status === "failed") && (
-                <button
-                  onClick={() => reparseMutation.mutate(u.id)}
-                  disabled={reparseMutation.isPending}
-                  title="Re-run LLM extraction"
-                  style={{ background: "none", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#6b7280", cursor: "pointer", flexShrink: 0 }}
-                >
-                  ↻
-                </button>
-              )}
               {u.status === "completed" && u.candidate_id && (
                 <Link
                   href={`/candidates/${u.candidate_id}`}
@@ -577,6 +577,18 @@ function CandidatesPanel({ jobId, rankings }: { jobId: string; rankings: import(
                   <ExternalLink size={11} /> Profile
                 </Link>
               )}
+              <button
+                  onClick={() => {
+                    if (confirm(`Delete ${u.applicant_name ?? "this candidate"}? This cannot be undone.`)) {
+                      deleteCandidateMutation.mutate(u.id);
+                    }
+                  }}
+                  disabled={deleteCandidateMutation.isPending}
+                  title="Delete candidate"
+                  style={{ background: "none", border: "1px solid #fecaca", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#dc2626", cursor: "pointer", flexShrink: 0 }}
+                >
+                  ✕
+                </button>
             </div>
           );
         })}

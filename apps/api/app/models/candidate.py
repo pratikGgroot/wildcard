@@ -24,6 +24,7 @@ class Candidate(Base):
     parsing_confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
     parsing_errors: Mapped[list | None] = mapped_column(JSON)
     parsed_data: Mapped[dict | None] = mapped_column(JSON)
+    embedding_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_duplicate: Mapped[bool] = mapped_column(Boolean, default=False)
     duplicate_of_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

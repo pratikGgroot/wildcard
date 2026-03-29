@@ -74,7 +74,7 @@ class DuplicateDetectionService:
                         Candidate.id != candidate.id,
                     )
                 )
-            ).scalar_one_or_none()
+            ).scalars().first()
 
             if existing:
                 # Check if they already applied to this job
@@ -85,7 +85,7 @@ class DuplicateDetectionService:
                             ResumeUpload.job_id == job_id,
                         )
                     )
-                ).scalar_one_or_none()
+                ).scalars().first()
 
                 if existing_upload:
                     return DedupResult(type="exact_duplicate", match_id=existing.id)

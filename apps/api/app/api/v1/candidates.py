@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import CurrentUser
 from app.db.base import get_db
 from app.models.candidate import Candidate, CandidateDocument, CandidateNote, CandidateTag, ResumeUpload
 from app.models.job import Job
@@ -17,8 +18,6 @@ from app.services.storage_service import delete_object, generate_download_url, g
 from app.services.embedding_service import EmbeddingService
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
-
-MOCK_USER_ID: uuid.UUID | None = None
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -143,12 +142,13 @@ async def list_notes(
 async def add_note(
     candidate_id: uuid.UUID,
     data: NoteCreate,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
     note = CandidateNote(
         candidate_id=candidate_id,
         job_id=data.job_id,
-        author_id=MOCK_USER_ID,
+        author_id=current_user.id,
         content=data.content,
     )
     db.add(note)
@@ -220,6 +220,7 @@ async def list_tags(
 async def add_tag(
     candidate_id: uuid.UUID,
     data: TagCreate,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
     # Prevent duplicate tags on same candidate
@@ -234,7 +235,7 @@ async def add_tag(
     tag = CandidateTag(
         candidate_id=candidate_id,
         tag=data.tag.strip().lower(),
-        added_by=MOCK_USER_ID,
+        added_by=current_user.id,
     )
     db.add(tag)
     await db.commit()
@@ -317,6 +318,7 @@ async def list_documents(
 async def get_document_upload_url(
     candidate_id: uuid.UUID,
     data: DocumentUploadUrlRequest,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
     """Get a presigned PUT URL for uploading a candidate document."""
@@ -349,7 +351,7 @@ async def get_document_upload_url(
         file_key=file_key,
         file_size_bytes=data.file_size_bytes,
         mime_type=data.mime_type,
-        uploaded_by=MOCK_USER_ID,
+        uploaded_by=current_user.id,
     )
     db.add(doc)
     await db.commit()
@@ -488,6 +490,7 @@ async def override_fit_score(
     candidate_id: uuid.UUID,
     job_id: uuid.UUID,
     data: ScoreOverrideRequest,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
     """Manually override the AI fit score with a justification."""
@@ -521,7 +524,7 @@ async def override_fit_score(
         {
             "os": data.override_score,
             "just": data.justification,
-            "by": str(MOCK_USER_ID) if MOCK_USER_ID else "system",
+            "by": str(current_user.id),
             "at": datetime.utcnow(),
             "id": str(rec[0]),
         },
@@ -579,3 +582,25 @@ async def reset_fit_score_override(
         "job_id": str(job_id),
         "restored_ai_score": rec[1],
     }
+
+
+# ── Delete candidate ──────────────────────────────────────────────────────────
+
+@router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_candidate(
+    candidate_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Hard-delete a candidate, their resume uploads, and all related data (cascade)."""
+    result = await db.execute(select(Candidate).where(Candidate.id == candidate_id))
+    candidate = result.scalar_one_or_none()
+    if not candidate:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Candidate not found")
+    # Delete resume uploads that reference this candidate (not cascade-deleted automatically)
+    await db.execute(
+        select(ResumeUpload).where(ResumeUpload.candidate_id == candidate_id)
+    )
+    from sqlalchemy import delete as _delete
+    await db.execute(_delete(ResumeUpload).where(ResumeUpload.candidate_id == candidate_id))
+    await db.delete(candidate)
+    await db.commit()

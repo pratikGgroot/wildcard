@@ -67,6 +67,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql+asyncpg://dev:devpassword@postgres:5432/hiring_platform
       REDIS_URL: redis://redis:6379
@@ -92,6 +94,8 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql+asyncpg://dev:devpassword@postgres:5432/hiring_platform
       REDIS_URL: redis://redis:6379
