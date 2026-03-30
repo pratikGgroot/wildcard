@@ -18,6 +18,7 @@ import { ParsingErrorsPanel } from "@/components/jobs/parsing-errors-panel";
 import { DuplicatesPanel } from "@/components/jobs/duplicates-panel";
 import ShortlistPanel from "@/components/jobs/shortlist-panel";
 import PipelinePanel from "@/components/jobs/pipeline-panel";
+import { ResumeUploadPanel } from "@/components/jobs/resume-upload-panel";
 
 const STATUS: Record<string, { label: string; bg: string; color: string; dot: string }> = {
   draft:  { label: "Draft",  bg: "#f3f4f6", color: "#6b7280", dot: "#9ca3af" },
@@ -64,7 +65,7 @@ export default function JobDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [closeReason, setCloseReason] = useState("");
-  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "pipeline" | "team" | "history" | "errors" | "duplicates" | "interview-kits">("description");
+  const [tab, setTab] = useState<"description" | "criteria" | "candidates" | "shortlist" | "pipeline" | "team" | "history" | "errors" | "duplicates" | "interview-kits" | "resumes">("description");
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -214,7 +215,8 @@ export default function JobDetailPage() {
           { key: "description", label: "Description",                                                    icon: Briefcase, dot: false },
           { key: "criteria",    label: "AI Criteria",                                                    icon: Sparkles,  dot: false },
           { key: "candidates",  label: `Candidates${candidateCount > 0 ? ` (${candidateCount})` : ""}`, icon: UserCheck, dot: false },
-          { key: "shortlist",   label: "AI Shortlist",                                                   icon: Sparkles,  dot: false },
+          { key: "resumes",     label: "Resumes",                                                          icon: Briefcase, dot: false },
+          { key: "shortlist",   label: "AI Shortlist",                                                     icon: Sparkles,  dot: false },
           { key: "pipeline",    label: "Pipeline",                                                       icon: Users,     dot: false },
           { key: "team",        label: `Team (${job.assignments.length})`,                               icon: Users,     dot: false },
         ] as const).map(({ key, label, icon: Icon, dot }) => (
@@ -291,6 +293,7 @@ export default function JobDetailPage() {
         )}
         {tab === "criteria"   && <CriteriaPanel jobId={job.id} />}
         {tab === "candidates" && <CandidatesPanel jobId={job.id} rankings={rankings} />}
+        {tab === "resumes"    && <ResumeUploadPanel jobId={job.id} />}
         {tab === "shortlist"  && <ShortlistPanel jobId={job.id} />}
         {tab === "pipeline"   && <PipelinePanel jobId={job.id} rankings={rankings} />}
         {tab === "team"       && <AssignmentManager jobId={job.id} assignments={job.assignments} readonly={job.status === "closed"} />}

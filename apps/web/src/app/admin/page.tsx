@@ -316,6 +316,8 @@ function AISettingsTab() {
           {saveMut.isPending ? "Saving…" : "Save AI Settings"}
         </button>
       </div>
+      <ApiKeyRow provider="openai" label="OpenAI" />
+      <ApiKeyRow provider="anthropic" label="Anthropic" />
     </GlassCard>
   );
 }

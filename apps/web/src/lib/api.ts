@@ -1315,6 +1315,7 @@ export interface AdminAuditEntry {
 }
 
 export const adminApi = {
+  // Users
   listUsers: (params?: { role?: string; search?: string; include_inactive?: boolean }) =>
     api.get<AdminUser[]>("/admin/users", { params }).then(r => r.data),
   createUser: (data: { email: string; full_name: string; role: string; password: string }) =>
@@ -1324,6 +1325,7 @@ export const adminApi = {
   deactivateUser: (id: string) =>
     api.delete(`/admin/users/${id}`),
 
+  // Settings
   listSettings: () =>
     api.get<{ key: string; value: any; updated_at: string | null }[]>("/admin/settings").then(r => r.data),
   getSetting: (key: string) =>
@@ -1331,9 +1333,11 @@ export const adminApi = {
   updateSetting: (key: string, value: Record<string, any>) =>
     api.put(`/admin/settings/${key}`, value).then(r => r.data),
 
+  // Audit log
   getAuditLog: (params?: { resource_type?: string; limit?: number }) =>
     api.get<AdminAuditEntry[]>("/admin/audit-log", { params }).then(r => r.data),
 
+  // API Keys
   getApiKeyStatus: (provider: string) =>
     api.get<{ provider: string; configured: boolean; source: string; set_at: string | null }>(`/admin/api-keys/${provider}/status`).then(r => r.data),
   setApiKey: (provider: string, api_key: string) =>

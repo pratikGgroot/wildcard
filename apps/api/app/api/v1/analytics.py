@@ -70,7 +70,7 @@ async def get_overview(
                 COUNT(DISTINCT CASE WHEN LOWER(ps.name) = 'hired' THEN cp.candidate_id END) as hired
             FROM candidate_pipeline cp
             JOIN pipeline_stages ps ON ps.id = cp.stage_id
-            JOIN resume_uploads ru ON ru.candidate_id = cp.candidate_id AND ru.job_id = cp.job_id
+            LEFT JOIN resume_uploads ru ON ru.candidate_id = cp.candidate_id AND ru.job_id = cp.job_id
             WHERE 1=1 {job_cond} {date_cond}
         """),
         params,
